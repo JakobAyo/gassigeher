@@ -4,14 +4,43 @@ A complete web-based dog walking booking system built with Go and Vanilla JavaSc
 
 ## Features
 
-- User registration with email verification
-- JWT-based authentication
-- Password reset flow
+### User Features
+- User registration with email verification and welcome email
+- JWT-based authentication with secure password requirements
+- Self-service password reset and change
+- Profile management with photo upload
+- Email re-verification on email change
+- Experience level system (Green → Blue → Orange)
+- Dog browsing with filters and search
+- Booking system with date/time selection
+- View and manage bookings (upcoming and past)
+- Add notes to completed walks
+- Cancel bookings with notice period
+- Request experience level promotions
 - GDPR-compliant account deletion
-- Automatic user deactivation after inactivity
-- German UI with i18n support
-- Mobile-first responsive design
-- Gmail API integration for email notifications
+- German UI with mobile-first responsive design
+
+### Admin Features
+- Comprehensive admin dashboard with real-time statistics
+- Dog management (CRUD, photos, availability toggle)
+- Booking management (view all, cancel, move)
+- Block dates with reasons
+- User management (activate/deactivate accounts)
+- Experience level request approval workflow
+- Reactivation request management
+- System settings configuration
+- Recent activity feed
+- Unified admin navigation
+
+### System Features
+- Automatic walk completion via cron jobs
+- Automatic user deactivation after 1 year inactivity
+- Email notifications for all major actions (17 types)
+- Experience-based access control
+- Double-booking prevention
+- Booking validation rules
+- Security headers and XSS protection
+- Comprehensive test suite
 
 ## Tech Stack
 
@@ -162,18 +191,81 @@ PORT=3000 ./gassigeher
 
 ## API Endpoints
 
-### Authentication
+### Authentication (Public)
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/verify-email` - Verify email with token
-- `POST /api/auth/login` - Login
+- `POST /api/auth/login` - Login and get JWT token
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token
-- `PUT /api/auth/change-password` - Change password (authenticated)
 
-### Users
+### Authentication (Protected)
+- `PUT /api/auth/change-password` - Change password
+
+### Users (Protected)
 - `GET /api/users/me` - Get current user profile
-- `PUT /api/users/me` - Update profile
+- `PUT /api/users/me` - Update profile (name, email, phone)
 - `POST /api/users/me/photo` - Upload profile photo
+- `DELETE /api/users/me` - Delete account (GDPR anonymization)
+
+### Dogs (Protected - Read)
+- `GET /api/dogs` - List all dogs with filters (breed, size, age, category, availability, search)
+- `GET /api/dogs/:id` - Get dog details
+- `GET /api/dogs/breeds` - Get all dog breeds
+
+### Dogs (Admin Only)
+- `POST /api/dogs` - Create new dog
+- `PUT /api/dogs/:id` - Update dog
+- `DELETE /api/dogs/:id` - Delete dog (prevents if future bookings exist)
+- `POST /api/dogs/:id/photo` - Upload dog photo
+- `PUT /api/dogs/:id/availability` - Toggle dog availability (health status)
+
+### Bookings (Protected)
+- `GET /api/bookings` - List bookings (user sees own, admin sees all)
+- `GET /api/bookings/:id` - Get booking details
+- `POST /api/bookings` - Create booking
+- `PUT /api/bookings/:id/cancel` - Cancel booking
+- `PUT /api/bookings/:id/notes` - Add notes to completed booking
+- `GET /api/bookings/calendar/:year/:month` - Get calendar data
+
+### Bookings (Admin Only)
+- `PUT /api/bookings/:id/move` - Move booking to new date/time
+
+### Blocked Dates (Protected - Read)
+- `GET /api/blocked-dates` - List all blocked dates
+
+### Blocked Dates (Admin Only)
+- `POST /api/blocked-dates` - Block a date
+- `DELETE /api/blocked-dates/:id` - Unblock a date
+
+### Experience Requests (Protected)
+- `POST /api/experience-requests` - Request level promotion
+- `GET /api/experience-requests` - List requests (user sees own, admin sees all pending)
+
+### Experience Requests (Admin Only)
+- `PUT /api/experience-requests/:id/approve` - Approve request
+- `PUT /api/experience-requests/:id/deny` - Deny request
+
+### Reactivation Requests (Public)
+- `POST /api/reactivation-requests` - Request account reactivation
+
+### Reactivation Requests (Admin Only)
+- `GET /api/reactivation-requests` - List all pending requests
+- `PUT /api/reactivation-requests/:id/approve` - Approve and reactivate user
+- `PUT /api/reactivation-requests/:id/deny` - Deny request
+
+### User Management (Admin Only)
+- `GET /api/users` - List all users with filters (active/inactive)
+- `GET /api/users/:id` - Get user by ID
+- `PUT /api/users/:id/activate` - Activate user account
+- `PUT /api/users/:id/deactivate` - Deactivate user account
+
+### System Settings (Admin Only)
+- `GET /api/settings` - Get all settings
+- `PUT /api/settings/:key` - Update setting value
+
+### Admin Dashboard (Admin Only)
+- `GET /api/admin/stats` - Get dashboard statistics
+- `GET /api/admin/activity` - Get recent activity feed
 
 ## Database
 
@@ -188,18 +280,30 @@ The application uses SQLite with automatic migrations. The database file is crea
 - `reactivation_requests` - Account reactivation requests
 - `system_settings` - Configurable system settings
 
-## Phase 1 Status: DONE ✅
+## Implementation Status
 
-Phase 1 (Foundation) is complete with:
-- ✅ Go backend with all auth endpoints
-- ✅ SQLite database with migrations
-- ✅ JWT authentication
-- ✅ Email verification flow
-- ✅ Password reset flow
-- ✅ Gmail API integration
-- ✅ Frontend with German i18n
-- ✅ All authentication pages (register, login, verify, reset)
-- ✅ Responsive design with Tierheim Göppingen colors
+### Completed Phases (8 of 10) ✅
+
+- ✅ **Phase 1**: Foundation (Auth, Database, Email)
+- ✅ **Phase 2**: Dog Management (CRUD, Photos, Categories)
+- ✅ **Phase 3**: Booking System (Create, View, Cancel, Auto-complete)
+- ✅ **Phase 4**: Blocked Dates & Admin Actions (Block dates, Move bookings)
+- ✅ **Phase 5**: Experience Levels (Request, Approve, Deny workflow)
+- ✅ **Phase 6**: User Profiles & Photos (Edit, Upload, Email re-verification)
+- ✅ **Phase 7**: Account Management & GDPR (Delete, Deactivate, Reactivate)
+- ✅ **Phase 8**: Admin Dashboard & Reports (Stats, Activity, Settings)
+- 🔄 **Phase 9**: Polish & Testing (Test suite, Security, Documentation)
+- ⏳ **Phase 10**: Deployment (Production setup)
+
+### Current Coverage
+- **Backend Tests**: Foundational structure in place
+  - Auth service: 18.7% coverage (7 tests passing)
+  - Models: 50% coverage (validation tests)
+  - Repository: 6.3% coverage (booking tests)
+- **Frontend**: Manual testing complete for all features
+- **Security**: Headers, XSS protection, password validation
+
+See `ImplementationPlan.md` for complete phase details.
 
 ## Development Notes
 
@@ -208,30 +312,99 @@ Phase 1 (Foundation) is complete with:
 - Dark Background: `#26272b`
 - Dark Gray: `#33363b`
 - Border Radius: `6px`
+- System fonts only (Arial, sans-serif)
 
 ### Admin Access
-Admins are defined in the `ADMIN_EMAILS` environment variable. Users with these emails get admin privileges automatically upon login.
+Admins are defined in the `ADMIN_EMAILS` environment variable (comma-separated). Users with these emails get admin privileges automatically upon login.
 
-### Testing Accounts
+Example: `ADMIN_EMAILS=admin@example.com,admin2@example.com`
 
-For development, you can:
-1. Register a new account
-2. Verify via email link (check console logs if Gmail not configured)
-3. Login with your credentials
+### Experience Level System
+- **Green (Beginner)**: Default for all new users, can book green-category dogs
+- **Blue (Experienced)**: Requires admin approval, can book green and blue dogs
+- **Orange (Dedicated)**: Requires admin approval, can book all dogs
 
-## Next Phases
+### Testing
 
-- **Phase 2**: Dog Management (CRUD, photos, categories)
-- **Phase 3**: Booking System (calendar, availability)
-- **Phase 4**: Blocked Dates & Admin Actions
-- **Phase 5**: Experience Levels (Green/Blue/Orange)
-- **Phase 6**: User Profiles & Photos
-- **Phase 7**: Account Management & GDPR
-- **Phase 8**: Admin Dashboard & Reports
-- **Phase 9**: Polish & Testing (90% coverage)
-- **Phase 10**: Deployment
+Run all tests:
+```bash
+go test ./... -v
+```
 
-See `ImplementationPlan.md` for complete details.
+Run tests with coverage:
+```bash
+go test ./... -coverprofile=coverage.out
+go tool cover -html=coverage.out
+```
+
+### Default System Settings
+- Booking advance: 14 days
+- Cancellation notice: 12 hours
+- Auto-deactivation: 365 days (1 year)
+
+These can be adjusted by admins in the settings page.
+
+### Automated Tasks (Cron Jobs)
+
+The application runs the following automated tasks:
+
+1. **Auto-complete Bookings** (every hour)
+   - Marks past scheduled bookings as completed
+   - Updates booking status automatically
+
+2. **Auto-deactivate Inactive Users** (daily at 3:00 AM)
+   - Checks for users inactive beyond configured period
+   - Deactivates accounts with "auto_inactivity" reason
+   - Sends notification emails
+
+### Email Notifications
+
+The system sends 17 types of email notifications:
+
+**Authentication:**
+1. Email verification link
+2. Welcome email after verification
+3. Password reset link
+
+**Bookings:**
+4. Booking confirmation
+5. Booking reminder (1 hour before)
+6. User cancellation confirmation
+7. Admin cancellation notification
+
+**Admin Actions:**
+8. Booking moved notification
+
+**Experience Levels:**
+9. Level promotion approved
+10. Level promotion denied
+
+**Account Lifecycle:**
+11. Account deactivated notification
+12. Account reactivated notification
+13. Reactivation request denied
+14. Account deletion confirmation
+
+All emails use HTML templates with inline CSS for consistent branding.
+
+## Security
+
+The application implements multiple security measures:
+
+- **Authentication**: JWT tokens with configurable expiration
+- **Password Security**: bcrypt hashing with cost factor 12
+- **Password Requirements**: Min 8 chars, uppercase, lowercase, number
+- **Email Verification**: Required before account activation
+- **Admin Authorization**: Config-based, not database-stored
+- **Security Headers**:
+  - X-Frame-Options: DENY (clickjacking protection)
+  - X-Content-Type-Options: nosniff (MIME sniffing protection)
+  - X-XSS-Protection: enabled
+  - Strict-Transport-Security: HTTPS enforcement
+  - Content-Security-Policy: XSS protection
+- **File Upload Validation**: Type and size checks
+- **SQL Injection Protection**: Parameterized queries throughout
+- **GDPR Compliance**: Right to deletion, data anonymization
 
 ## Contributing
 

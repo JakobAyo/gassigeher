@@ -40,6 +40,7 @@ func main() {
 
 	// Apply global middleware
 	router.Use(middleware.LoggingMiddleware)
+	router.Use(middleware.SecurityHeadersMiddleware)
 	router.Use(middleware.CORSMiddleware)
 
 	// Initialize handlers
