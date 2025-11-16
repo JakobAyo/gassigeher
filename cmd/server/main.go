@@ -49,6 +49,7 @@ func main() {
 	bookingHandler := handlers.NewBookingHandler(db, cfg)
 	blockedDateHandler := handlers.NewBlockedDateHandler(db, cfg)
 	settingsHandler := handlers.NewSettingsHandler(db, cfg)
+	experienceHandler := handlers.NewExperienceRequestHandler(db, cfg)
 
 	// Start cron service for auto-completion and reminders
 	cronService := cron.NewCronService(db)
@@ -90,6 +91,10 @@ func main() {
 	// Blocked dates (read-only for authenticated users)
 	protected.HandleFunc("/blocked-dates", blockedDateHandler.ListBlockedDates).Methods("GET")
 
+	// Experience requests (authenticated users)
+	protected.HandleFunc("/experience-requests", experienceHandler.CreateRequest).Methods("POST")
+	protected.HandleFunc("/experience-requests", experienceHandler.ListRequests).Methods("GET")
+
 	// Admin-only routes
 	admin := protected.PathPrefix("").Subrouter()
 	admin.Use(middleware.RequireAdmin)
@@ -111,6 +116,10 @@ func main() {
 	// System settings (admin only)
 	admin.HandleFunc("/settings", settingsHandler.GetAllSettings).Methods("GET")
 	admin.HandleFunc("/settings/{key}", settingsHandler.UpdateSetting).Methods("PUT")
+
+	// Experience requests management (admin only)
+	admin.HandleFunc("/experience-requests/{id}/approve", experienceHandler.ApproveRequest).Methods("PUT")
+	admin.HandleFunc("/experience-requests/{id}/deny", experienceHandler.DenyRequest).Methods("PUT")
 
 	// Static files
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend")))

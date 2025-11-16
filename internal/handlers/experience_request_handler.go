@@ -1,0 +1,288 @@
+package handlers
+
+import (
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/tranm/gassigeher/internal/config"
+	"github.com/tranm/gassigeher/internal/models"
+	"github.com/tranm/gassigeher/internal/repository"
+	"github.com/tranm/gassigeher/internal/services"
+)
+
+// ExperienceRequestHandler handles experience request-related HTTP requests
+type ExperienceRequestHandler struct {
+	db         *sql.DB
+	cfg        *config.Config
+	requestRepo *repository.ExperienceRequestRepository
+	userRepo    *repository.UserRepository
+	emailService *services.EmailService
+}
+
+// NewExperienceRequestHandler creates a new experience request handler
+func NewExperienceRequestHandler(db *sql.DB, cfg *config.Config) *ExperienceRequestHandler {
+	emailService, err := services.NewEmailService(
+		cfg.GmailClientID,
+		cfg.GmailClientSecret,
+		cfg.GmailRefreshToken,
+		cfg.GmailFromEmail,
+	)
+	if err != nil {
+		// Log error but don't fail
+		println("Warning: Failed to initialize email service:", err.Error())
+	}
+
+	return &ExperienceRequestHandler{
+		db:           db,
+		cfg:          cfg,
+		requestRepo:  repository.NewExperienceRequestRepository(db),
+		userRepo:     repository.NewUserRepository(db),
+		emailService: emailService,
+	}
+}
+
+// CreateRequest creates a new experience level request
+func (h *ExperienceRequestHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from context
+	userID, ok := r.Context().Value("user_id").(int)
+	if !ok {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Parse request
+	var req models.CreateExperienceRequestRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate request
+	if err := req.Validate(); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Get user
+	user, err := h.userRepo.FindByID(userID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get user")
+		return
+	}
+	if user == nil {
+		respondError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// Check if user already has this level or higher
+	currentLevel := user.ExperienceLevel
+	requestedLevel := req.RequestedLevel
+
+	if currentLevel == "orange" {
+		respondError(w, http.StatusBadRequest, "You already have the highest level")
+		return
+	}
+
+	if currentLevel == "blue" && requestedLevel == "blue" {
+		respondError(w, http.StatusBadRequest, "You already have this level")
+		return
+	}
+
+	if currentLevel == "green" && requestedLevel == "orange" {
+		respondError(w, http.StatusBadRequest, "You must first get blue level")
+		return
+	}
+
+	// Check if user already has a pending request for this level
+	hasPending, err := h.requestRepo.HasPendingRequest(userID, requestedLevel)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to check pending requests")
+		return
+	}
+	if hasPending {
+		respondError(w, http.StatusConflict, "You already have a pending request for this level")
+		return
+	}
+
+	// Create request
+	experienceRequest := &models.ExperienceRequest{
+		UserID:         userID,
+		RequestedLevel: requestedLevel,
+	}
+
+	if err := h.requestRepo.Create(experienceRequest); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to create request")
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, experienceRequest)
+}
+
+// ListRequests lists experience requests (user sees own, admin sees all pending)
+func (h *ExperienceRequestHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
+	// Get user ID and admin status from context
+	userID, _ := r.Context().Value("user_id").(int)
+	isAdmin, _ := r.Context().Value("is_admin").(bool)
+
+	var requests []*models.ExperienceRequest
+	var err error
+
+	if isAdmin {
+		// Admin sees all pending requests
+		requests, err = h.requestRepo.FindAllPending()
+	} else {
+		// User sees their own requests
+		requests, err = h.requestRepo.FindByUserID(userID)
+	}
+
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get requests")
+		return
+	}
+
+	// If admin, populate user details
+	if isAdmin {
+		for _, req := range requests {
+			user, err := h.userRepo.FindByID(req.UserID)
+			if err == nil && user != nil {
+				req.User = user
+			}
+		}
+	}
+
+	respondJSON(w, http.StatusOK, requests)
+}
+
+// ApproveRequest approves an experience request (admin only)
+func (h *ExperienceRequestHandler) ApproveRequest(w http.ResponseWriter, r *http.Request) {
+	// Get request ID from URL
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request ID")
+		return
+	}
+
+	// Get admin user ID
+	reviewerID, _ := r.Context().Value("user_id").(int)
+
+	// Parse request body
+	var req models.ReviewExperienceRequestRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Allow empty body
+		req = models.ReviewExperienceRequestRequest{}
+	}
+
+	// Get experience request
+	experienceRequest, err := h.requestRepo.FindByID(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get request")
+		return
+	}
+	if experienceRequest == nil {
+		respondError(w, http.StatusNotFound, "Request not found")
+		return
+	}
+
+	// Check if already reviewed
+	if experienceRequest.Status != "pending" {
+		respondError(w, http.StatusBadRequest, "Request has already been reviewed")
+		return
+	}
+
+	// Get user
+	user, err := h.userRepo.FindByID(experienceRequest.UserID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get user")
+		return
+	}
+	if user == nil {
+		respondError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// Approve request
+	if err := h.requestRepo.Approve(id, reviewerID, req.Message); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to approve request")
+		return
+	}
+
+	// Update user experience level
+	user.ExperienceLevel = experienceRequest.RequestedLevel
+	if err := h.userRepo.Update(user); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update user level")
+		return
+	}
+
+	// Send email notification
+	if user.Email != nil {
+		go h.emailService.SendExperienceLevelApproved(*user.Email, user.Name, experienceRequest.RequestedLevel, req.Message)
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Request approved"})
+}
+
+// DenyRequest denies an experience request (admin only)
+func (h *ExperienceRequestHandler) DenyRequest(w http.ResponseWriter, r *http.Request) {
+	// Get request ID from URL
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request ID")
+		return
+	}
+
+	// Get admin user ID
+	reviewerID, _ := r.Context().Value("user_id").(int)
+
+	// Parse request body
+	var req models.ReviewExperienceRequestRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Allow empty body
+		req = models.ReviewExperienceRequestRequest{}
+	}
+
+	// Get experience request
+	experienceRequest, err := h.requestRepo.FindByID(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get request")
+		return
+	}
+	if experienceRequest == nil {
+		respondError(w, http.StatusNotFound, "Request not found")
+		return
+	}
+
+	// Check if already reviewed
+	if experienceRequest.Status != "pending" {
+		respondError(w, http.StatusBadRequest, "Request has already been reviewed")
+		return
+	}
+
+	// Get user
+	user, err := h.userRepo.FindByID(experienceRequest.UserID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get user")
+		return
+	}
+	if user == nil {
+		respondError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// Deny request
+	if err := h.requestRepo.Deny(id, reviewerID, req.Message); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to deny request")
+		return
+	}
+
+	// Send email notification
+	if user.Email != nil {
+		go h.emailService.SendExperienceLevelDenied(*user.Email, user.Name, experienceRequest.RequestedLevel, req.Message)
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Request denied"})
+}

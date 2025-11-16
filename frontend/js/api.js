@@ -245,6 +245,24 @@ class API {
     async updateSetting(key, value) {
         return this.request('PUT', `/settings/${key}`, { value });
     }
+
+    // EXPERIENCE REQUEST ENDPOINTS
+
+    async createExperienceRequest(requestedLevel) {
+        return this.request('POST', '/experience-requests', { requested_level: requestedLevel });
+    }
+
+    async getExperienceRequests() {
+        return this.request('GET', '/experience-requests');
+    }
+
+    async approveExperienceRequest(id, message = null) {
+        return this.request('PUT', `/experience-requests/${id}/approve`, { message });
+    }
+
+    async denyExperienceRequest(id, message = null) {
+        return this.request('PUT', `/experience-requests/${id}/deny`, { message });
+    }
 }
 
 // Global instance
