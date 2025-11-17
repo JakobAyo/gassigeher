@@ -143,6 +143,9 @@ func main() {
 	admin.HandleFunc("/admin/stats", dashboardHandler.GetStats).Methods("GET")
 	admin.HandleFunc("/admin/activity", dashboardHandler.GetRecentActivity).Methods("GET")
 
+	// Uploads directory (user photos, dog photos)
+	router.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+
 	// Static files
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend")))
 
