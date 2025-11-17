@@ -135,6 +135,11 @@ foreach ($table in $tables) {
 }
 [void]$sql.AppendLine("")
 
+# Reset autoincrement sequences
+[void]$sql.AppendLine("-- Reset autoincrement sequences")
+[void]$sql.AppendLine("DELETE FROM sqlite_sequence WHERE name IN ('users', 'dogs', 'bookings', 'blocked_dates', 'experience_requests', 'reactivation_requests');")
+[void]$sql.AppendLine("")
+
 # System settings
 [void]$sql.AppendLine("-- System settings")
 [void]$sql.AppendLine("INSERT INTO system_settings (key, value) VALUES")
