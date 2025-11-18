@@ -99,15 +99,15 @@
 				
 				<option value="file21">github.com/tranm/gassigeher/internal/repository/blocked_date_repository.go (84.8%)</option>
 				
-				<option value="file22">github.com/tranm/gassigeher/internal/repository/booking_repository.go (23.1%)</option>
+				<option value="file22">github.com/tranm/gassigeher/internal/repository/booking_repository.go (54.5%)</option>
 				
 				<option value="file23">github.com/tranm/gassigeher/internal/repository/dog_repository.go (72.4%)</option>
 				
 				<option value="file24">github.com/tranm/gassigeher/internal/repository/experience_request_repository.go (84.6%)</option>
 				
-				<option value="file25">github.com/tranm/gassigeher/internal/repository/reactivation_request_repository.go (0.0%)</option>
+				<option value="file25">github.com/tranm/gassigeher/internal/repository/reactivation_request_repository.go (67.7%)</option>
 				
-				<option value="file26">github.com/tranm/gassigeher/internal/repository/settings_repository.go (0.0%)</option>
+				<option value="file26">github.com/tranm/gassigeher/internal/repository/settings_repository.go (84.4%)</option>
 				
 				<option value="file27">github.com/tranm/gassigeher/internal/repository/user_repository.go (69.6%)</option>
 				
@@ -4214,12 +4214,12 @@ type BookingRepository struct {
 }
 
 // NewBookingRepository creates a new booking repository
-func NewBookingRepository(db *sql.DB) *BookingRepository <span class="cov10" title="4">{
+func NewBookingRepository(db *sql.DB) *BookingRepository <span class="cov8" title="9">{
         return &amp;BookingRepository{db: db}
 }</span>
 
 // Create creates a new booking
-func (r *BookingRepository) Create(booking *models.Booking) error <span class="cov10" title="4">{
+func (r *BookingRepository) Create(booking *models.Booking) error <span class="cov10" title="14">{
         query := `
                 INSERT INTO bookings (user_id, dog_id, date, walk_type, scheduled_time, status, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -4241,12 +4241,12 @@ func (r *BookingRepository) Create(booking *models.Booking) error <span class="c
                 return fmt.Errorf("failed to create booking: %w", err)
         }</span>
 
-        <span class="cov10" title="4">id, err := result.LastInsertId()
+        <span class="cov10" title="14">id, err := result.LastInsertId()
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to get booking ID: %w", err)
         }</span>
 
-        <span class="cov10" title="4">booking.ID = int(id)
+        <span class="cov10" title="14">booking.ID = int(id)
         booking.Status = "scheduled"
         booking.CreatedAt = now
         booking.UpdatedAt = now
@@ -4255,7 +4255,7 @@ func (r *BookingRepository) Create(booking *models.Booking) error <span class="c
 }
 
 // FindByID finds a booking by ID
-func (r *BookingRepository) FindByID(id int) (*models.Booking, error) <span class="cov5" title="2">{
+func (r *BookingRepository) FindByID(id int) (*models.Booking, error) <span class="cov6" title="5">{
         query := `
                 SELECT id, user_id, dog_id, date, walk_type, scheduled_time, status,
                        completed_at, user_notes, admin_cancellation_reason, created_at, updated_at
@@ -4279,19 +4279,19 @@ func (r *BookingRepository) FindByID(id int) (*models.Booking, error) <span clas
                 &amp;booking.UpdatedAt,
         )
 
-        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+        if err == sql.ErrNoRows </span><span class="cov1" title="1">{
                 return nil, nil
         }</span>
 
-        <span class="cov5" title="2">if err != nil </span><span class="cov0" title="0">{
+        <span class="cov5" title="4">if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to find booking: %w", err)
         }</span>
 
-        <span class="cov5" title="2">return booking, nil</span>
+        <span class="cov5" title="4">return booking, nil</span>
 }
 
 // FindAll finds all bookings with optional filters
-func (r *BookingRepository) FindAll(filter *models.BookingFilterRequest) ([]*models.Booking, error) <span class="cov0" title="0">{
+func (r *BookingRepository) FindAll(filter *models.BookingFilterRequest) ([]*models.Booking, error) <span class="cov4" title="3">{
         query := `
                 SELECT id, user_id, dog_id, date, walk_type, scheduled_time, status,
                        completed_at, user_notes, admin_cancellation_reason, created_at, updated_at
@@ -4300,38 +4300,38 @@ func (r *BookingRepository) FindAll(filter *models.BookingFilterRequest) ([]*mod
         `
         args := []interface{}{}
 
-        if filter != nil </span><span class="cov0" title="0">{
-                if filter.UserID != nil </span><span class="cov0" title="0">{
+        if filter != nil </span><span class="cov3" title="2">{
+                if filter.UserID != nil </span><span class="cov1" title="1">{
                         query += " AND user_id = ?"
                         args = append(args, *filter.UserID)
                 }</span>
 
-                <span class="cov0" title="0">if filter.DogID != nil </span><span class="cov0" title="0">{
+                <span class="cov3" title="2">if filter.DogID != nil </span><span class="cov0" title="0">{
                         query += " AND dog_id = ?"
                         args = append(args, *filter.DogID)
                 }</span>
 
-                <span class="cov0" title="0">if filter.DateFrom != nil </span><span class="cov0" title="0">{
+                <span class="cov3" title="2">if filter.DateFrom != nil </span><span class="cov0" title="0">{
                         query += " AND date &gt;= ?"
                         args = append(args, *filter.DateFrom)
                 }</span>
 
-                <span class="cov0" title="0">if filter.DateTo != nil </span><span class="cov0" title="0">{
+                <span class="cov3" title="2">if filter.DateTo != nil </span><span class="cov0" title="0">{
                         query += " AND date &lt;= ?"
                         args = append(args, *filter.DateTo)
                 }</span>
 
-                <span class="cov0" title="0">if filter.Status != nil </span><span class="cov0" title="0">{
+                <span class="cov3" title="2">if filter.Status != nil </span><span class="cov1" title="1">{
                         query += " AND status = ?"
                         args = append(args, *filter.Status)
                 }</span>
 
-                <span class="cov0" title="0">if filter.WalkType != nil </span><span class="cov0" title="0">{
+                <span class="cov3" title="2">if filter.WalkType != nil </span><span class="cov0" title="0">{
                         query += " AND walk_type = ?"
                         args = append(args, *filter.WalkType)
                 }</span>
 
-                <span class="cov0" title="0">if filter.Year != nil &amp;&amp; filter.Month != nil </span><span class="cov0" title="0">{
+                <span class="cov3" title="2">if filter.Year != nil &amp;&amp; filter.Month != nil </span><span class="cov0" title="0">{
                         // Filter by year and month
                         startDate := fmt.Sprintf("%d-%02d-01", *filter.Year, *filter.Month)
                         // Calculate last day of month
@@ -4343,16 +4343,16 @@ func (r *BookingRepository) FindAll(filter *models.BookingFilterRequest) ([]*mod
                 }</span>
         }
 
-        <span class="cov0" title="0">query += " ORDER BY date ASC, scheduled_time ASC"
+        <span class="cov4" title="3">query += " ORDER BY date ASC, scheduled_time ASC"
 
         rows, err := r.db.Query(query, args...)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to query bookings: %w", err)
         }</span>
-        <span class="cov0" title="0">defer rows.Close()
+        <span class="cov4" title="3">defer rows.Close()
 
         bookings := []*models.Booking{}
-        for rows.Next() </span><span class="cov0" title="0">{
+        for rows.Next() </span><span class="cov8" title="8">{
                 booking := &amp;models.Booking{}
                 err := rows.Scan(
                         &amp;booking.ID,
@@ -4371,10 +4371,10 @@ func (r *BookingRepository) FindAll(filter *models.BookingFilterRequest) ([]*mod
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("failed to scan booking: %w", err)
                 }</span>
-                <span class="cov0" title="0">bookings = append(bookings, booking)</span>
+                <span class="cov8" title="8">bookings = append(bookings, booking)</span>
         }
 
-        <span class="cov0" title="0">return bookings, nil</span>
+        <span class="cov4" title="3">return bookings, nil</span>
 }
 
 // Cancel cancels a booking
@@ -4394,7 +4394,7 @@ func (r *BookingRepository) Cancel(id int, reason *string) error <span class="co
 }
 
 // AddNotes adds notes to a completed booking
-func (r *BookingRepository) AddNotes(id int, notes string) error <span class="cov0" title="0">{
+func (r *BookingRepository) AddNotes(id int, notes string) error <span class="cov1" title="1">{
         query := `
                 UPDATE bookings
                 SET user_notes = ?, updated_at = ?
@@ -4406,20 +4406,20 @@ func (r *BookingRepository) AddNotes(id int, notes string) error <span class="co
                 return fmt.Errorf("failed to add notes: %w", err)
         }</span>
 
-        <span class="cov0" title="0">rows, err := result.RowsAffected()
+        <span class="cov1" title="1">rows, err := result.RowsAffected()
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to check rows affected: %w", err)
         }</span>
 
-        <span class="cov0" title="0">if rows == 0 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if rows == 0 </span><span class="cov0" title="0">{
                 return fmt.Errorf("booking not found or not completed")
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov1" title="1">return nil</span>
 }
 
 // CheckDoubleBooking checks if a dog is already booked for the given date and walk type
-func (r *BookingRepository) CheckDoubleBooking(dogID int, date, walkType string) (bool, error) <span class="cov5" title="2">{
+func (r *BookingRepository) CheckDoubleBooking(dogID int, date, walkType string) (bool, error) <span class="cov3" title="2">{
         query := `
                 SELECT COUNT(*)
                 FROM bookings
@@ -4432,7 +4432,7 @@ func (r *BookingRepository) CheckDoubleBooking(dogID int, date, walkType string)
                 return false, fmt.Errorf("failed to check double booking: %w", err)
         }</span>
 
-        <span class="cov5" title="2">return count &gt; 0, nil</span>
+        <span class="cov3" title="2">return count &gt; 0, nil</span>
 }
 
 // AutoComplete marks all past scheduled bookings as completed
@@ -4466,7 +4466,7 @@ func (r *BookingRepository) AutoComplete() (int, error) <span class="cov1" title
 }
 
 // GetUpcoming gets upcoming bookings for a user
-func (r *BookingRepository) GetUpcoming(userID int, limit int) ([]*models.Booking, error) <span class="cov0" title="0">{
+func (r *BookingRepository) GetUpcoming(userID int, limit int) ([]*models.Booking, error) <span class="cov3" title="2">{
         query := `
                 SELECT id, user_id, dog_id, date, walk_type, scheduled_time, status,
                        completed_at, user_notes, admin_cancellation_reason, created_at, updated_at
@@ -4481,10 +4481,10 @@ func (r *BookingRepository) GetUpcoming(userID int, limit int) ([]*models.Bookin
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to query upcoming bookings: %w", err)
         }</span>
-        <span class="cov0" title="0">defer rows.Close()
+        <span class="cov3" title="2">defer rows.Close()
 
         bookings := []*models.Booking{}
-        for rows.Next() </span><span class="cov0" title="0">{
+        for rows.Next() </span><span class="cov4" title="3">{
                 booking := &amp;models.Booking{}
                 err := rows.Scan(
                         &amp;booking.ID,
@@ -4503,10 +4503,10 @@ func (r *BookingRepository) GetUpcoming(userID int, limit int) ([]*models.Bookin
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("failed to scan booking: %w", err)
                 }</span>
-                <span class="cov0" title="0">bookings = append(bookings, booking)</span>
+                <span class="cov4" title="3">bookings = append(bookings, booking)</span>
         }
 
-        <span class="cov0" title="0">return bookings, nil</span>
+        <span class="cov3" title="2">return bookings, nil</span>
 }
 
 // GetForReminders gets bookings that need reminders (1 hour before scheduled time)
@@ -4563,7 +4563,7 @@ func (r *BookingRepository) GetForReminders() ([]*models.Booking, error) <span c
 }
 
 // Update updates a booking (for admin to move bookings)
-func (r *BookingRepository) Update(booking *models.Booking) error <span class="cov0" title="0">{
+func (r *BookingRepository) Update(booking *models.Booking) error <span class="cov1" title="1">{
         query := `
                 UPDATE bookings
                 SET date = ?, walk_type = ?, scheduled_time = ?, updated_at = ?
@@ -4582,7 +4582,7 @@ func (r *BookingRepository) Update(booking *models.Booking) error <span class="c
                 return fmt.Errorf("failed to update booking: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov1" title="1">return nil</span>
 }
 
 // FindByIDWithDetails finds a booking by ID with user and dog details
@@ -5242,12 +5242,12 @@ type ReactivationRequestRepository struct {
 }
 
 // NewReactivationRequestRepository creates a new reactivation request repository
-func NewReactivationRequestRepository(db *sql.DB) *ReactivationRequestRepository <span class="cov0" title="0">{
+func NewReactivationRequestRepository(db *sql.DB) *ReactivationRequestRepository <span class="cov9" title="7">{
         return &amp;ReactivationRequestRepository{db: db}
 }</span>
 
 // Create creates a new reactivation request
-func (r *ReactivationRequestRepository) Create(request *models.ReactivationRequest) error <span class="cov0" title="0">{
+func (r *ReactivationRequestRepository) Create(request *models.ReactivationRequest) error <span class="cov10" title="8">{
         query := `
                 INSERT INTO reactivation_requests (user_id, status, created_at)
                 VALUES (?, 'pending', ?)
@@ -5259,12 +5259,12 @@ func (r *ReactivationRequestRepository) Create(request *models.ReactivationReque
                 return fmt.Errorf("failed to create reactivation request: %w", err)
         }</span>
 
-        <span class="cov0" title="0">id, err := result.LastInsertId()
+        <span class="cov10" title="8">id, err := result.LastInsertId()
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to get request ID: %w", err)
         }</span>
 
-        <span class="cov0" title="0">request.ID = int(id)
+        <span class="cov10" title="8">request.ID = int(id)
         request.Status = "pending"
         request.CreatedAt = now
 
@@ -5272,7 +5272,7 @@ func (r *ReactivationRequestRepository) Create(request *models.ReactivationReque
 }
 
 // FindByID finds a reactivation request by ID
-func (r *ReactivationRequestRepository) FindByID(id int) (*models.ReactivationRequest, error) <span class="cov0" title="0">{
+func (r *ReactivationRequestRepository) FindByID(id int) (*models.ReactivationRequest, error) <span class="cov7" title="4">{
         query := `
                 SELECT id, user_id, status, admin_message, reviewed_by, reviewed_at, created_at
                 FROM reactivation_requests
@@ -5290,15 +5290,15 @@ func (r *ReactivationRequestRepository) FindByID(id int) (*models.ReactivationRe
                 &amp;request.CreatedAt,
         )
 
-        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+        if err == sql.ErrNoRows </span><span class="cov1" title="1">{
                 return nil, nil
         }</span>
 
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+        <span class="cov5" title="3">if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to find reactivation request: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return request, nil</span>
+        <span class="cov5" title="3">return request, nil</span>
 }
 
 // FindAllPending finds all pending reactivation requests
@@ -5338,7 +5338,7 @@ func (r *ReactivationRequestRepository) FindAllPending() ([]*models.Reactivation
 }
 
 // Approve approves a reactivation request
-func (r *ReactivationRequestRepository) Approve(id int, reviewerID int, message *string) error <span class="cov0" title="0">{
+func (r *ReactivationRequestRepository) Approve(id int, reviewerID int, message *string) error <span class="cov1" title="1">{
         query := `
                 UPDATE reactivation_requests
                 SET status = 'approved', reviewed_by = ?, reviewed_at = ?, admin_message = ?
@@ -5351,11 +5351,11 @@ func (r *ReactivationRequestRepository) Approve(id int, reviewerID int, message 
                 return fmt.Errorf("failed to approve request: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov1" title="1">return nil</span>
 }
 
 // Deny denies a reactivation request
-func (r *ReactivationRequestRepository) Deny(id int, reviewerID int, message *string) error <span class="cov0" title="0">{
+func (r *ReactivationRequestRepository) Deny(id int, reviewerID int, message *string) error <span class="cov1" title="1">{
         query := `
                 UPDATE reactivation_requests
                 SET status = 'denied', reviewed_by = ?, reviewed_at = ?, admin_message = ?
@@ -5368,11 +5368,11 @@ func (r *ReactivationRequestRepository) Deny(id int, reviewerID int, message *st
                 return fmt.Errorf("failed to deny request: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov1" title="1">return nil</span>
 }
 
 // HasPendingRequest checks if user has a pending reactivation request
-func (r *ReactivationRequestRepository) HasPendingRequest(userID int) (bool, error) <span class="cov0" title="0">{
+func (r *ReactivationRequestRepository) HasPendingRequest(userID int) (bool, error) <span class="cov4" title="2">{
         query := `
                 SELECT COUNT(*)
                 FROM reactivation_requests
@@ -5385,11 +5385,11 @@ func (r *ReactivationRequestRepository) HasPendingRequest(userID int) (bool, err
                 return false, fmt.Errorf("failed to check pending request: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return count &gt; 0, nil</span>
+        <span class="cov4" title="2">return count &gt; 0, nil</span>
 }
 
 // FindByUserID finds reactivation requests by user ID
-func (r *ReactivationRequestRepository) FindByUserID(userID int) ([]*models.ReactivationRequest, error) <span class="cov0" title="0">{
+func (r *ReactivationRequestRepository) FindByUserID(userID int) ([]*models.ReactivationRequest, error) <span class="cov4" title="2">{
         query := `
                 SELECT id, user_id, status, admin_message, reviewed_by, reviewed_at, created_at
                 FROM reactivation_requests
@@ -5401,10 +5401,10 @@ func (r *ReactivationRequestRepository) FindByUserID(userID int) ([]*models.Reac
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to query reactivation requests: %w", err)
         }</span>
-        <span class="cov0" title="0">defer rows.Close()
+        <span class="cov4" title="2">defer rows.Close()
 
         requests := []*models.ReactivationRequest{}
-        for rows.Next() </span><span class="cov0" title="0">{
+        for rows.Next() </span><span class="cov4" title="2">{
                 request := &amp;models.ReactivationRequest{}
                 err := rows.Scan(
                         &amp;request.ID,
@@ -5418,10 +5418,10 @@ func (r *ReactivationRequestRepository) FindByUserID(userID int) ([]*models.Reac
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("failed to scan reactivation request: %w", err)
                 }</span>
-                <span class="cov0" title="0">requests = append(requests, request)</span>
+                <span class="cov4" title="2">requests = append(requests, request)</span>
         }
 
-        <span class="cov0" title="0">return requests, nil</span>
+        <span class="cov4" title="2">return requests, nil</span>
 }
 </pre>
 		
@@ -5441,12 +5441,12 @@ type SettingsRepository struct {
 }
 
 // NewSettingsRepository creates a new settings repository
-func NewSettingsRepository(db *sql.DB) *SettingsRepository <span class="cov0" title="0">{
+func NewSettingsRepository(db *sql.DB) *SettingsRepository <span class="cov7" title="4">{
         return &amp;SettingsRepository{db: db}
 }</span>
 
 // Get retrieves a setting by key
-func (r *SettingsRepository) Get(key string) (*models.SystemSetting, error) <span class="cov0" title="0">{
+func (r *SettingsRepository) Get(key string) (*models.SystemSetting, error) <span class="cov9" title="5">{
         query := `
                 SELECT key, value, updated_at
                 FROM system_settings
@@ -5460,19 +5460,19 @@ func (r *SettingsRepository) Get(key string) (*models.SystemSetting, error) <spa
                 &amp;setting.UpdatedAt,
         )
 
-        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+        if err == sql.ErrNoRows </span><span class="cov4" title="2">{
                 return nil, nil
         }</span>
 
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+        <span class="cov6" title="3">if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to get setting: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return setting, nil</span>
+        <span class="cov6" title="3">return setting, nil</span>
 }
 
 // GetAll retrieves all settings
-func (r *SettingsRepository) GetAll() ([]*models.SystemSetting, error) <span class="cov0" title="0">{
+func (r *SettingsRepository) GetAll() ([]*models.SystemSetting, error) <span class="cov4" title="2">{
         query := `
                 SELECT key, value, updated_at
                 FROM system_settings
@@ -5483,10 +5483,10 @@ func (r *SettingsRepository) GetAll() ([]*models.SystemSetting, error) <span cla
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to query settings: %w", err)
         }</span>
-        <span class="cov0" title="0">defer rows.Close()
+        <span class="cov4" title="2">defer rows.Close()
 
         settings := []*models.SystemSetting{}
-        for rows.Next() </span><span class="cov0" title="0">{
+        for rows.Next() </span><span class="cov10" title="6">{
                 setting := &amp;models.SystemSetting{}
                 err := rows.Scan(
                         &amp;setting.Key,
@@ -5496,14 +5496,14 @@ func (r *SettingsRepository) GetAll() ([]*models.SystemSetting, error) <span cla
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("failed to scan setting: %w", err)
                 }</span>
-                <span class="cov0" title="0">settings = append(settings, setting)</span>
+                <span class="cov10" title="6">settings = append(settings, setting)</span>
         }
 
-        <span class="cov0" title="0">return settings, nil</span>
+        <span class="cov4" title="2">return settings, nil</span>
 }
 
 // Update updates a setting value
-func (r *SettingsRepository) Update(key, value string) error <span class="cov0" title="0">{
+func (r *SettingsRepository) Update(key, value string) error <span class="cov6" title="3">{
         query := `
                 UPDATE system_settings
                 SET value = ?, updated_at = ?
@@ -5515,16 +5515,16 @@ func (r *SettingsRepository) Update(key, value string) error <span class="cov0" 
                 return fmt.Errorf("failed to update setting: %w", err)
         }</span>
 
-        <span class="cov0" title="0">rows, err := result.RowsAffected()
+        <span class="cov6" title="3">rows, err := result.RowsAffected()
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to check rows affected: %w", err)
         }</span>
 
-        <span class="cov0" title="0">if rows == 0 </span><span class="cov0" title="0">{
+        <span class="cov6" title="3">if rows == 0 </span><span class="cov1" title="1">{
                 return fmt.Errorf("setting not found")
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov4" title="2">return nil</span>
 }
 </pre>
 		
