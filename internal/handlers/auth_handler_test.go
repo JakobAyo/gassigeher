@@ -618,6 +618,248 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 	})
 }
 
+// DONE: TestAuthHandler_ForgotPassword tests forgot password endpoint
+func TestAuthHandler_ForgotPassword(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	cfg := &config.Config{JWTSecret: "test-secret"}
+	handler := NewAuthHandler(db, cfg)
+	userRepo := repository.NewUserRepository(db)
+
+	t.Run("valid email - user exists", func(t *testing.T) {
+		email := "reset@example.com"
+		testutil.SeedTestUser(t, db, email, "Reset User", "green")
+
+		reqBody := map[string]string{
+			"email": email,
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/forgot-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ForgotPassword(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", rec.Code)
+		}
+
+		// Verify user has reset token
+		user, _ := userRepo.FindByEmail(email)
+		if user.PasswordResetToken == nil {
+			t.Error("Expected password reset token to be set")
+		}
+		if user.PasswordResetExpires == nil {
+			t.Error("Expected password reset expiration to be set")
+		}
+	})
+
+	t.Run("empty email", func(t *testing.T) {
+		reqBody := map[string]string{
+			"email": "",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/forgot-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ForgotPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("user does not exist - security response", func(t *testing.T) {
+		reqBody := map[string]string{
+			"email": "nonexistent@example.com",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/forgot-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ForgotPassword(rec, req)
+
+		// Should still return 200 for security (don't reveal if email exists)
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200 for security, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/auth/forgot-password", strings.NewReader("invalid json"))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ForgotPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+}
+
+// DONE: TestAuthHandler_ResetPassword tests password reset with token
+func TestAuthHandler_ResetPassword(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	cfg := &config.Config{JWTSecret: "test-secret"}
+	handler := NewAuthHandler(db, cfg)
+	userRepo := repository.NewUserRepository(db)
+	authService := services.NewAuthService(cfg.JWTSecret, 24)
+
+	t.Run("valid token and matching passwords", func(t *testing.T) {
+		email := "resetvalid@example.com"
+		userID := testutil.SeedTestUser(t, db, email, "Reset User", "green")
+
+		// Generate reset token
+		resetToken, _ := authService.GenerateToken()
+		expires := time.Now().Add(1 * time.Hour)
+
+		// Get user and set reset token
+		user, _ := userRepo.FindByID(userID)
+		user.PasswordResetToken = &resetToken
+		user.PasswordResetExpires = &expires
+		userRepo.Update(user)
+
+		reqBody := map[string]string{
+			"token":            resetToken,
+			"password":         "NewPassword123!",
+			"confirm_password": "NewPassword123!",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", rec.Code)
+		}
+
+		// Verify token cleared
+		updatedUser, _ := userRepo.FindByID(userID)
+		if updatedUser.PasswordResetToken != nil {
+			t.Error("Expected password reset token to be cleared")
+		}
+	})
+
+	t.Run("empty token", func(t *testing.T) {
+		reqBody := map[string]string{
+			"token":            "",
+			"password":         "NewPassword123!",
+			"confirm_password": "NewPassword123!",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("passwords do not match", func(t *testing.T) {
+		reqBody := map[string]string{
+			"token":            "some-token",
+			"password":         "NewPassword123!",
+			"confirm_password": "DifferentPassword456!",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid password - too short", func(t *testing.T) {
+		reqBody := map[string]string{
+			"token":            "some-token",
+			"password":         "short",
+			"confirm_password": "short",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid token - user not found", func(t *testing.T) {
+		reqBody := map[string]string{
+			"token":            "invalid-token-xyz",
+			"password":         "NewPassword123!",
+			"confirm_password": "NewPassword123!",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("Expected status 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("expired token", func(t *testing.T) {
+		email := "resetexpired@example.com"
+		userID := testutil.SeedTestUser(t, db, email, "Expired User", "green")
+
+		// Generate reset token with expired time
+		resetToken, _ := authService.GenerateToken()
+		expires := time.Now().Add(-1 * time.Hour) // Expired 1 hour ago
+
+		// Get user and set expired reset token
+		user, _ := userRepo.FindByID(userID)
+		user.PasswordResetToken = &resetToken
+		user.PasswordResetExpires = &expires
+		userRepo.Update(user)
+
+		reqBody := map[string]string{
+			"token":            resetToken,
+			"password":         "NewPassword123!",
+			"confirm_password": "NewPassword123!",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400 for expired token, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/auth/reset-password", strings.NewReader("invalid json"))
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		handler.ResetPassword(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+}
+
 // Helper function to add user context to request
 // Note: Some handlers use middleware constants, others use string keys
 // This helper adds both for compatibility
