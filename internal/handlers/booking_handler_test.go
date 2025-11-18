@@ -369,3 +369,61 @@ func TestBookingHandler_CancelBooking(t *testing.T) {
 	})
 }
 
+
+// DONE: TestBookingHandler_AddNotes tests adding notes to completed bookings
+func TestBookingHandler_AddNotes(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	cfg := &config.Config{
+		JWTSecret:          "test-secret",
+		JWTExpirationHours: 24,
+	}
+	handler := NewBookingHandler(db, cfg)
+
+	userID := testutil.SeedTestUser(t, db, "user@example.com", "User", "green")
+	dogID := testutil.SeedTestDog(t, db, "Bella", "Labrador", "green")
+
+	// Create completed booking
+	bookingID := testutil.SeedTestBooking(t, db, userID, dogID, "2025-12-01", "morning", "09:00", "completed")
+
+	t.Run("successfully add notes to completed booking", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"notes": "Great walk! Dog was very friendly.",
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/api/bookings/"+fmt.Sprintf("%d", bookingID)+"/notes", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", bookingID)})
+		ctx := contextWithUser(req.Context(), userID, "user@example.com", false)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.AddNotes(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d. Body: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("cannot add notes to scheduled booking", func(t *testing.T) {
+		scheduledID := testutil.SeedTestBooking(t, db, userID, dogID, "2025-12-05", "evening", "15:00", "scheduled")
+
+		reqBody := map[string]interface{}{
+			"notes": "Early notes",
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/api/bookings/"+fmt.Sprintf("%d", scheduledID)+"/notes", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", scheduledID)})
+		ctx := contextWithUser(req.Context(), userID, "user@example.com", false)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.AddNotes(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+}
