@@ -468,3 +468,206 @@ func TestUserHandler_GetUser(t *testing.T) {
 		}
 	})
 }
+
+// DONE: TestUserHandler_DeactivateUser tests deactivating a user (admin only)
+func TestUserHandler_DeactivateUser(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	cfg := &config.Config{JWTSecret: "test-secret"}
+	handler := NewUserHandler(db, cfg)
+	userRepo := repository.NewUserRepository(db)
+
+	t.Run("admin can deactivate user with reason", func(t *testing.T) {
+		userID := testutil.SeedTestUser(t, db, "deactivate@example.com", "Deactivate Me", "green")
+
+		reqBody := map[string]string{
+			"reason": "Policy violation",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/admin/users/"+fmt.Sprintf("%d", userID)+"/deactivate", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", userID)})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.DeactivateUser(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d. Body: %s", rec.Code, rec.Body.String())
+		}
+
+		// Verify user is deactivated
+		user, _ := userRepo.FindByID(userID)
+		if user.IsActive {
+			t.Error("User should be deactivated")
+		}
+		if user.DeactivationReason == nil || *user.DeactivationReason != "Policy violation" {
+			t.Errorf("Expected reason 'Policy violation', got %v", user.DeactivationReason)
+		}
+	})
+
+	t.Run("missing reason", func(t *testing.T) {
+		userID := testutil.SeedTestUser(t, db, "noreason@example.com", "No Reason", "green")
+
+		reqBody := map[string]string{
+			"reason": "",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/admin/users/"+fmt.Sprintf("%d", userID)+"/deactivate", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", userID)})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.DeactivateUser(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("user not found", func(t *testing.T) {
+		reqBody := map[string]string{
+			"reason": "Test",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/admin/users/99999/deactivate", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": "99999"})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.DeactivateUser(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("Expected status 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid user ID", func(t *testing.T) {
+		reqBody := map[string]string{
+			"reason": "Test",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/admin/users/invalid/deactivate", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": "invalid"})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.DeactivateUser(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		userID := testutil.SeedTestUser(t, db, "invalid@example.com", "Invalid Body", "green")
+
+		req := httptest.NewRequest("POST", "/api/admin/users/"+fmt.Sprintf("%d", userID)+"/deactivate", bytes.NewReader([]byte("invalid json")))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", userID)})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.DeactivateUser(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+}
+
+// DONE: TestUserHandler_ActivateUser tests activating a user (admin only)
+func TestUserHandler_ActivateUser(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	cfg := &config.Config{JWTSecret: "test-secret"}
+	handler := NewUserHandler(db, cfg)
+	userRepo := repository.NewUserRepository(db)
+
+	t.Run("admin can activate deactivated user", func(t *testing.T) {
+		userID := testutil.SeedTestUser(t, db, "activate@example.com", "Activate Me", "blue")
+
+		// Deactivate user first
+		userRepo.Deactivate(userID, "Test deactivation")
+
+		reqBody := map[string]interface{}{
+			"message": "Account reactivated",
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/admin/users/"+fmt.Sprintf("%d", userID)+"/activate", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", userID)})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.ActivateUser(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d. Body: %s", rec.Code, rec.Body.String())
+		}
+
+		// Verify user is activated
+		user, _ := userRepo.FindByID(userID)
+		if !user.IsActive {
+			t.Error("User should be activated")
+		}
+		if user.ReactivatedAt == nil {
+			t.Error("ReactivatedAt should be set")
+		}
+	})
+
+	t.Run("activate without message", func(t *testing.T) {
+		userID := testutil.SeedTestUser(t, db, "nomsg@example.com", "No Message", "green")
+		userRepo.Deactivate(userID, "Test")
+
+		req := httptest.NewRequest("POST", "/api/admin/users/"+fmt.Sprintf("%d", userID)+"/activate", bytes.NewReader([]byte("{}")))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": fmt.Sprintf("%d", userID)})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.ActivateUser(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("user not found", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/admin/users/99999/activate", bytes.NewReader([]byte("{}")))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": "99999"})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.ActivateUser(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("Expected status 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid user ID", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/admin/users/invalid/activate", bytes.NewReader([]byte("{}")))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"id": "invalid"})
+		ctx := contextWithUser(req.Context(), 1, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.ActivateUser(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400, got %d", rec.Code)
+		}
+	})
+}
