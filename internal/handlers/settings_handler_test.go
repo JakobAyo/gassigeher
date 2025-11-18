@@ -165,4 +165,73 @@ func TestSettingsHandler_UpdateSetting(t *testing.T) {
 			t.Errorf("Expected status 400 for invalid JSON, got %d", rec.Code)
 		}
 	})
+
+	// DONE: BUG #3 - Prevent invalid numeric setting values
+	t.Run("BUGFIX: reject non-numeric value for booking_advance_days", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"value": "abc123", // Invalid - should be number
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/api/settings/booking_advance_days", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"key": "booking_advance_days"})
+		ctx := contextWithUser(req.Context(), adminID, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.UpdateSetting(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("BUGFIX: Expected status 400 for non-numeric value, got %d", rec.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(rec.Body.Bytes(), &response)
+		errorMsg := response["error"].(string)
+
+		if errorMsg != "Value must be a positive integer" {
+			t.Errorf("Expected clear validation error, got %q", errorMsg)
+		}
+	})
+
+	t.Run("BUGFIX: reject negative value for numeric setting", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"value": "-5", // Invalid - must be positive
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/api/settings/auto_deactivation_days", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"key": "auto_deactivation_days"})
+		ctx := contextWithUser(req.Context(), adminID, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.UpdateSetting(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("BUGFIX: Expected status 400 for negative value, got %d", rec.Code)
+		}
+	})
+
+	t.Run("BUGFIX: reject zero value for numeric setting", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"value": "0", // Invalid - must be positive
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/api/settings/cancellation_notice_hours", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req = mux.SetURLVars(req, map[string]string{"key": "cancellation_notice_hours"})
+		ctx := contextWithUser(req.Context(), adminID, "admin@example.com", true)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		handler.UpdateSetting(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("BUGFIX: Expected status 400 for zero value, got %d", rec.Code)
+		}
+	})
 }

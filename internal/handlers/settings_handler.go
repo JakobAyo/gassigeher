@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/tranm/gassigeher/internal/config"
@@ -55,6 +56,21 @@ func (h *SettingsHandler) UpdateSetting(w http.ResponseWriter, r *http.Request) 
 	if err := req.Validate(); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// BUGFIX #3: Validate numeric settings to prevent silent failures
+	// These settings must be valid positive integers
+	numericSettings := map[string]bool{
+		"booking_advance_days":      true,
+		"cancellation_notice_hours": true,
+		"auto_deactivation_days":    true,
+	}
+
+	if numericSettings[key] {
+		if val, err := strconv.Atoi(req.Value); err != nil || val <= 0 {
+			respondError(w, http.StatusBadRequest, "Value must be a positive integer")
+			return
+		}
 	}
 
 	// Update setting
