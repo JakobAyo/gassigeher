@@ -1,0 +1,22 @@
+{
+  "name": "gassigeher-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Gassigeher using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:chrome": "playwright test --project=chromium-desktop",
+    "test:mobile": "playwright test --project=mobile-iphone --project=mobile-android",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install chromium"
+  },
+  "keywords": ["e2e", "playwright", "testing"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "sqlite3": "^5.1.6"
+  }
+}
