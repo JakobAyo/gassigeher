@@ -2,6 +2,7 @@ package repository
 
 import (
 	"testing"
+	"time"
 
 	"github.com/tranm/gassigeher/internal/models"
 	"github.com/tranm/gassigeher/internal/testutil"
@@ -29,6 +30,52 @@ func TestDogRepository_Create(t *testing.T) {
 
 		if dog.ID == 0 {
 			t.Error("Dog ID should be set after creation")
+		}
+	})
+
+	t.Run("creation with all fields", func(t *testing.T) {
+		specialNeeds := "Needs gentle handling"
+		pickupLocation := "Building A"
+		walkRoute := "Park trail"
+		walkDuration := 30
+		specialInstructions := "Please use harness"
+		morningTime := "09:00"
+		eveningTime := "17:00"
+		photo := "dog.jpg"
+
+		dog := &models.Dog{
+			Name:                "Complete Dog",
+			Breed:               "Golden Retriever",
+			Size:                "large",
+			Age:                 7,
+			Category:            "orange",
+			IsAvailable:         true,
+			SpecialNeeds:        &specialNeeds,
+			PickupLocation:      &pickupLocation,
+			WalkRoute:           &walkRoute,
+			WalkDuration:        &walkDuration,
+			SpecialInstructions: &specialInstructions,
+			DefaultMorningTime:  &morningTime,
+			DefaultEveningTime:  &eveningTime,
+			Photo:               &photo,
+		}
+
+		err := repo.Create(dog)
+		if err != nil {
+			t.Fatalf("Create() with all fields failed: %v", err)
+		}
+
+		if dog.ID == 0 {
+			t.Error("Dog ID should be set after creation")
+		}
+
+		// Verify all fields
+		created, _ := repo.FindByID(dog.ID)
+		if created.SpecialNeeds == nil || *created.SpecialNeeds != specialNeeds {
+			t.Errorf("Expected special needs '%s', got %v", specialNeeds, created.SpecialNeeds)
+		}
+		if created.WalkRoute == nil || *created.WalkRoute != walkRoute {
+			t.Errorf("Expected walk route '%s', got %v", walkRoute, created.WalkRoute)
 		}
 	})
 
@@ -165,6 +212,219 @@ func TestDogRepository_FindAll(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("filter by breed", func(t *testing.T) {
+		breed := "Labrador"
+		filter := &models.DogFilterRequest{
+			Breed: &breed,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with breed filter failed: %v", err)
+		}
+
+		if len(dogs) != 1 {
+			t.Errorf("Expected 1 Labrador, got %d", len(dogs))
+		}
+
+		if len(dogs) > 0 && dogs[0].Breed != "Labrador" {
+			t.Errorf("Expected breed 'Labrador', got %s", dogs[0].Breed)
+		}
+	})
+
+	t.Run("filter by breed - case insensitive", func(t *testing.T) {
+		breed := "beagle"
+		filter := &models.DogFilterRequest{
+			Breed: &breed,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with breed filter failed: %v", err)
+		}
+
+		if len(dogs) != 1 {
+			t.Errorf("Expected 1 Beagle (case insensitive), got %d", len(dogs))
+		}
+	})
+
+	t.Run("filter by size", func(t *testing.T) {
+		size := "medium"
+		filter := &models.DogFilterRequest{
+			Size: &size,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with size filter failed: %v", err)
+		}
+
+		// All test dogs are seeded with medium size by SeedTestDog
+		if len(dogs) != 3 {
+			t.Errorf("Expected 3 medium dogs, got %d", len(dogs))
+		}
+	})
+
+	t.Run("filter by age range", func(t *testing.T) {
+		minAge := 4
+		maxAge := 6
+		filter := &models.DogFilterRequest{
+			MinAge: &minAge,
+			MaxAge: &maxAge,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with age filter failed: %v", err)
+		}
+
+		// All test dogs are seeded with age 5 by SeedTestDog
+		if len(dogs) != 3 {
+			t.Errorf("Expected 3 dogs in age range 4-6, got %d", len(dogs))
+		}
+
+		for _, dog := range dogs {
+			if dog.Age < minAge || dog.Age > maxAge {
+				t.Errorf("Dog %s age %d not in range %d-%d", dog.Name, dog.Age, minAge, maxAge)
+			}
+		}
+	})
+
+	t.Run("filter by min age only", func(t *testing.T) {
+		minAge := 3
+		filter := &models.DogFilterRequest{
+			MinAge: &minAge,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with min age filter failed: %v", err)
+		}
+
+		for _, dog := range dogs {
+			if dog.Age < minAge {
+				t.Errorf("Dog %s age %d is below minimum %d", dog.Name, dog.Age, minAge)
+			}
+		}
+	})
+
+	t.Run("filter by max age only", func(t *testing.T) {
+		maxAge := 10
+		filter := &models.DogFilterRequest{
+			MaxAge: &maxAge,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with max age filter failed: %v", err)
+		}
+
+		for _, dog := range dogs {
+			if dog.Age > maxAge {
+				t.Errorf("Dog %s age %d is above maximum %d", dog.Name, dog.Age, maxAge)
+			}
+		}
+	})
+
+	t.Run("filter by search - name", func(t *testing.T) {
+		search := "Bella"
+		filter := &models.DogFilterRequest{
+			Search: &search,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with search filter failed: %v", err)
+		}
+
+		if len(dogs) != 1 {
+			t.Errorf("Expected 1 dog matching 'Bella', got %d", len(dogs))
+		}
+
+		if len(dogs) > 0 && dogs[0].Name != "Bella" {
+			t.Errorf("Expected dog 'Bella', got %s", dogs[0].Name)
+		}
+	})
+
+	t.Run("filter by search - breed", func(t *testing.T) {
+		search := "Shepherd"
+		filter := &models.DogFilterRequest{
+			Search: &search,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with search filter failed: %v", err)
+		}
+
+		if len(dogs) != 1 {
+			t.Errorf("Expected 1 dog matching 'Shepherd', got %d", len(dogs))
+		}
+
+		if len(dogs) > 0 && dogs[0].Breed != "German Shepherd" {
+			t.Errorf("Expected breed 'German Shepherd', got %s", dogs[0].Breed)
+		}
+	})
+
+	t.Run("filter by search - case insensitive partial match", func(t *testing.T) {
+		search := "bel"
+		filter := &models.DogFilterRequest{
+			Search: &search,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with search filter failed: %v", err)
+		}
+
+		if len(dogs) != 1 {
+			t.Errorf("Expected 1 dog matching 'bel', got %d", len(dogs))
+		}
+	})
+
+	t.Run("filter with multiple criteria", func(t *testing.T) {
+		category := "blue"
+		available := true
+		filter := &models.DogFilterRequest{
+			Category:  &category,
+			Available: &available,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with multiple filters failed: %v", err)
+		}
+
+		if len(dogs) != 1 {
+			t.Errorf("Expected 1 blue available dog, got %d", len(dogs))
+		}
+
+		if len(dogs) > 0 {
+			if dogs[0].Category != "blue" {
+				t.Errorf("Expected category 'blue', got %s", dogs[0].Category)
+			}
+			if !dogs[0].IsAvailable {
+				t.Error("Expected dog to be available")
+			}
+		}
+	})
+
+	t.Run("no results - breed not found", func(t *testing.T) {
+		breed := "Poodle"
+		filter := &models.DogFilterRequest{
+			Breed: &breed,
+		}
+
+		dogs, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with breed filter failed: %v", err)
+		}
+
+		if len(dogs) != 0 {
+			t.Errorf("Expected 0 Poodles, got %d", len(dogs))
+		}
+	})
 }
 
 // DONE: TestDogRepository_Update tests updating dog information
@@ -200,6 +460,48 @@ func TestDogRepository_Update(t *testing.T) {
 			t.Errorf("Expected category 'blue', got %s", updated.Category)
 		}
 	})
+
+	t.Run("update with optional fields", func(t *testing.T) {
+		dogID := testutil.SeedTestDog(t, db, "Max", "Beagle", "blue")
+		dog, _ := repo.FindByID(dogID)
+
+		// Update optional fields
+		specialNeeds := "Needs medication"
+		walkRoute := "Park trail"
+		dog.SpecialNeeds = &specialNeeds
+		dog.WalkRoute = &walkRoute
+
+		err := repo.Update(dog)
+		if err != nil {
+			t.Fatalf("Update() failed: %v", err)
+		}
+
+		// Verify updates
+		updated, _ := repo.FindByID(dogID)
+		if updated.SpecialNeeds == nil || *updated.SpecialNeeds != specialNeeds {
+			t.Errorf("Expected special needs '%s', got %v", specialNeeds, updated.SpecialNeeds)
+		}
+		if updated.WalkRoute == nil || *updated.WalkRoute != walkRoute {
+			t.Errorf("Expected walk route '%s', got %v", walkRoute, updated.WalkRoute)
+		}
+	})
+
+	t.Run("update non-existent dog", func(t *testing.T) {
+		dog := &models.Dog{
+			ID:       99999,
+			Name:     "Nonexistent",
+			Breed:    "Test",
+			Size:     "small",
+			Age:      3,
+			Category: "green",
+		}
+
+		err := repo.Update(dog)
+		// Should not error even if no rows updated
+		if err != nil {
+			t.Logf("Update non-existent dog returned: %v", err)
+		}
+	})
 }
 
 // DONE: TestDogRepository_Delete tests dog deletion
@@ -227,6 +529,49 @@ func TestDogRepository_Delete(t *testing.T) {
 		// Should not error or should handle gracefully
 		if err != nil {
 			t.Logf("Delete non-existent dog returned: %v", err)
+		}
+	})
+
+	t.Run("cannot delete dog with future bookings", func(t *testing.T) {
+		dogID := testutil.SeedTestDog(t, db, "Max", "Beagle", "blue")
+		userID := testutil.SeedTestUser(t, db, "user@example.com", "Test User", "blue")
+
+		// Create future booking for this dog
+		futureDate := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+		testutil.SeedTestBooking(t, db, userID, dogID, futureDate, "morning", "09:00", "scheduled")
+
+		// Try to delete dog
+		err := repo.Delete(dogID)
+
+		if err == nil {
+			t.Error("Expected error when deleting dog with future bookings, got nil")
+		}
+
+		// Verify dog still exists
+		dog, _ := repo.FindByID(dogID)
+		if dog == nil {
+			t.Error("Dog should still exist after failed deletion")
+		}
+	})
+
+	t.Run("can delete dog with only past bookings", func(t *testing.T) {
+		dogID := testutil.SeedTestDog(t, db, "Rocky", "Shepherd", "orange")
+		userID := testutil.SeedTestUser(t, db, "pastuser@example.com", "Past User", "orange")
+
+		// Create past booking for this dog
+		pastDate := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
+		testutil.SeedTestBooking(t, db, userID, dogID, pastDate, "evening", "16:00", "completed")
+
+		// Should be able to delete dog with past bookings only
+		err := repo.Delete(dogID)
+		if err != nil {
+			t.Fatalf("Delete() should succeed with only past bookings, got error: %v", err)
+		}
+
+		// Verify dog is deleted
+		dog, _ := repo.FindByID(dogID)
+		if dog != nil {
+			t.Error("Dog should be deleted")
 		}
 	})
 }

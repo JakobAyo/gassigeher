@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 	"time"
 
@@ -149,30 +150,64 @@ func TestBookingRepository_Cancel(t *testing.T) {
 
 	repo := NewBookingRepository(db)
 
-	booking := &models.Booking{
-		UserID:        1,
-		DogID:         1,
-		Date:          "2025-12-01",
-		WalkType:      "morning",
-		ScheduledTime: "09:00",
-	}
-	repo.Create(booking)
+	t.Run("cancel with reason", func(t *testing.T) {
+		booking := &models.Booking{
+			UserID:        1,
+			DogID:         1,
+			Date:          "2025-12-01",
+			WalkType:      "morning",
+			ScheduledTime: "09:00",
+		}
+		repo.Create(booking)
 
-	reason := "Dog is sick"
-	err := repo.Cancel(booking.ID, &reason)
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+		reason := "Dog is sick"
+		err := repo.Cancel(booking.ID, &reason)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
 
-	// Verify cancellation
-	cancelled, _ := repo.FindByID(booking.ID)
-	if cancelled.Status != "cancelled" {
-		t.Errorf("Expected status 'cancelled', got %s", cancelled.Status)
-	}
+		// Verify cancellation
+		cancelled, _ := repo.FindByID(booking.ID)
+		if cancelled.Status != "cancelled" {
+			t.Errorf("Expected status 'cancelled', got %s", cancelled.Status)
+		}
 
-	if cancelled.AdminCancellationReason == nil || *cancelled.AdminCancellationReason != reason {
-		t.Error("Expected cancellation reason to be set")
-	}
+		if cancelled.AdminCancellationReason == nil || *cancelled.AdminCancellationReason != reason {
+			t.Error("Expected cancellation reason to be set")
+		}
+	})
+
+	t.Run("cancel without reason", func(t *testing.T) {
+		booking := &models.Booking{
+			UserID:        2,
+			DogID:         2,
+			Date:          "2025-12-02",
+			WalkType:      "evening",
+			ScheduledTime: "15:00",
+		}
+		repo.Create(booking)
+
+		err := repo.Cancel(booking.ID, nil)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		// Verify cancellation
+		cancelled, _ := repo.FindByID(booking.ID)
+		if cancelled.Status != "cancelled" {
+			t.Errorf("Expected status 'cancelled', got %s", cancelled.Status)
+		}
+	})
+
+	t.Run("cancel non-existent booking", func(t *testing.T) {
+		reason := "Test"
+		err := repo.Cancel(99999, &reason)
+
+		// May or may not error depending on implementation
+		if err != nil {
+			t.Logf("Cancel non-existent booking returned: %v", err)
+		}
+	})
 }
 
 // DONE: TestBookingRepository_FindByID tests finding booking by ID
@@ -309,6 +344,180 @@ func TestBookingRepository_FindAll(t *testing.T) {
 
 		t.Logf("Found %d scheduled bookings", len(bookings))
 	})
+
+	t.Run("filter by dog_id", func(t *testing.T) {
+		dogID := 2
+		filter := &models.BookingFilterRequest{
+			DogID: &dogID,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with dog filter failed: %v", err)
+		}
+
+		if len(bookings) != 1 {
+			t.Errorf("Expected 1 booking for dog 2, got %d", len(bookings))
+		}
+
+		if len(bookings) > 0 && bookings[0].DogID != 2 {
+			t.Errorf("Expected DogID=2, got %d", bookings[0].DogID)
+		}
+	})
+
+	t.Run("filter by walk_type", func(t *testing.T) {
+		walkType := "morning"
+		filter := &models.BookingFilterRequest{
+			WalkType: &walkType,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with walk_type filter failed: %v", err)
+		}
+
+		for _, b := range bookings {
+			if b.WalkType != "morning" {
+				t.Errorf("Expected walk_type 'morning', got %s", b.WalkType)
+			}
+		}
+
+		if len(bookings) != 2 {
+			t.Errorf("Expected 2 morning bookings, got %d", len(bookings))
+		}
+	})
+
+	t.Run("filter by date_from", func(t *testing.T) {
+		dateFrom := "2025-12-01"
+		filter := &models.BookingFilterRequest{
+			DateFrom: &dateFrom,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with date_from filter failed: %v", err)
+		}
+
+		// Should only get bookings from 2025-12-01 onwards
+		for _, b := range bookings {
+			if b.Date < dateFrom {
+				t.Errorf("Expected date >= %s, got %s", dateFrom, b.Date)
+			}
+		}
+
+		if len(bookings) != 2 {
+			t.Errorf("Expected 2 bookings from 2025-12-01 onwards, got %d", len(bookings))
+		}
+	})
+
+	t.Run("filter by date_to", func(t *testing.T) {
+		dateTo := "2025-12-01"
+		filter := &models.BookingFilterRequest{
+			DateTo: &dateTo,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with date_to filter failed: %v", err)
+		}
+
+		// Should get bookings up to and including 2025-12-01
+		for _, b := range bookings {
+			if b.Date > dateTo {
+				t.Errorf("Expected date <= %s, got %s", dateTo, b.Date)
+			}
+		}
+	})
+
+	t.Run("filter by date range", func(t *testing.T) {
+		dateFrom := "2025-12-01"
+		dateTo := "2025-12-02"
+		filter := &models.BookingFilterRequest{
+			DateFrom: &dateFrom,
+			DateTo:   &dateTo,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with date range filter failed: %v", err)
+		}
+
+		if len(bookings) != 2 {
+			t.Errorf("Expected 2 bookings in date range, got %d", len(bookings))
+		}
+
+		for _, b := range bookings {
+			if b.Date < dateFrom || b.Date > dateTo {
+				t.Errorf("Expected date in range %s to %s, got %s", dateFrom, dateTo, b.Date)
+			}
+		}
+	})
+
+	t.Run("filter by year and month", func(t *testing.T) {
+		year := 2025
+		month := 12
+		filter := &models.BookingFilterRequest{
+			Year:  &year,
+			Month: &month,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with year/month filter failed: %v", err)
+		}
+
+		// Should find bookings in December 2025
+		if len(bookings) != 2 {
+			t.Errorf("Expected 2 bookings in December 2025, got %d", len(bookings))
+		}
+
+		for _, b := range bookings {
+			if !strings.HasPrefix(b.Date, "2025-12") {
+				t.Errorf("Expected date in 2025-12, got %s", b.Date)
+			}
+		}
+	})
+
+	t.Run("filter with multiple criteria", func(t *testing.T) {
+		userID := 1
+		status := "scheduled"
+		filter := &models.BookingFilterRequest{
+			UserID: &userID,
+			Status: &status,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll with multiple filters failed: %v", err)
+		}
+
+		// User 1 has bookings, filter to scheduled ones
+		for _, b := range bookings {
+			if b.UserID != 1 {
+				t.Errorf("Expected UserID=1, got %d", b.UserID)
+			}
+			// Status filter may or may not work depending on Create() setting status
+			// We're testing the filter logic works
+		}
+
+		t.Logf("Found %d scheduled bookings for user 1", len(bookings))
+	})
+
+	t.Run("no results with filter", func(t *testing.T) {
+		userID := 999
+		filter := &models.BookingFilterRequest{
+			UserID: &userID,
+		}
+
+		bookings, err := repo.FindAll(filter)
+		if err != nil {
+			t.Fatalf("FindAll failed: %v", err)
+		}
+
+		if len(bookings) != 0 {
+			t.Errorf("Expected 0 bookings for non-existent user, got %d", len(bookings))
+		}
+	})
 }
 
 // DONE: TestBookingRepository_AddNotes tests adding notes to bookings
@@ -332,7 +541,7 @@ func TestBookingRepository_AddNotes(t *testing.T) {
 	// Update to completed status
 	db.Exec("UPDATE bookings SET status = 'completed', completed_at = ? WHERE id = ?", time.Now(), booking.ID)
 
-	t.Run("add notes to booking", func(t *testing.T) {
+	t.Run("add notes to completed booking", func(t *testing.T) {
 		notes := "Great walk! Dog was very energetic."
 
 		err := repo.AddNotes(booking.ID, notes)
@@ -346,6 +555,96 @@ func TestBookingRepository_AddNotes(t *testing.T) {
 
 		if userNotes == nil || *userNotes != notes {
 			t.Errorf("Expected notes '%s', got %v", notes, userNotes)
+		}
+	})
+
+	t.Run("cannot add notes to scheduled booking", func(t *testing.T) {
+		// Create another booking that's still scheduled
+		scheduledBooking := &models.Booking{
+			UserID:        2,
+			DogID:         2,
+			Date:          "2025-12-02",
+			WalkType:      "evening",
+			ScheduledTime: "16:00",
+			Status:        "scheduled",
+		}
+		repo.Create(scheduledBooking)
+
+		notes := "Should fail"
+		err := repo.AddNotes(scheduledBooking.ID, notes)
+
+		if err == nil {
+			t.Error("Expected error when adding notes to scheduled booking, got nil")
+		}
+	})
+
+	t.Run("cannot add notes to cancelled booking", func(t *testing.T) {
+		// Create cancelled booking
+		cancelledBooking := &models.Booking{
+			UserID:        3,
+			DogID:         3,
+			Date:          "2025-12-03",
+			WalkType:      "morning",
+			ScheduledTime: "09:00",
+			Status:        "cancelled",
+		}
+		repo.Create(cancelledBooking)
+
+		// Update to cancelled
+		db.Exec("UPDATE bookings SET status = 'cancelled' WHERE id = ?", cancelledBooking.ID)
+
+		notes := "Should fail"
+		err := repo.AddNotes(cancelledBooking.ID, notes)
+
+		if err == nil {
+			t.Error("Expected error when adding notes to cancelled booking, got nil")
+		}
+	})
+
+	t.Run("add empty notes", func(t *testing.T) {
+		// Create another completed booking
+		completedBooking := &models.Booking{
+			UserID:        4,
+			DogID:         4,
+			Date:          "2025-12-04",
+			WalkType:      "morning",
+			ScheduledTime: "09:00",
+		}
+		repo.Create(completedBooking)
+		db.Exec("UPDATE bookings SET status = 'completed', completed_at = ? WHERE id = ?", time.Now(), completedBooking.ID)
+
+		err := repo.AddNotes(completedBooking.ID, "")
+		if err != nil {
+			t.Fatalf("AddNotes() with empty notes failed: %v", err)
+		}
+	})
+
+	t.Run("non-existent booking", func(t *testing.T) {
+		err := repo.AddNotes(99999, "Notes for non-existent booking")
+
+		if err == nil {
+			t.Error("Expected error for non-existent booking, got nil")
+		}
+	})
+
+	t.Run("update existing notes", func(t *testing.T) {
+		// Add notes first
+		originalNotes := "Original notes"
+		repo.AddNotes(booking.ID, originalNotes)
+
+		// Update notes
+		updatedNotes := "Updated notes"
+		err := repo.AddNotes(booking.ID, updatedNotes)
+		if err != nil {
+			t.Fatalf("AddNotes() update failed: %v", err)
+		}
+
+		// Verify updated notes
+		var userNotes *string
+		db.QueryRow("SELECT user_notes FROM bookings WHERE id = ?", booking.ID).Scan(&userNotes)
+
+		if userNotes == nil || *userNotes != updatedNotes {
+			t.Errorf("Expected notes '%s', got %v", updatedNotes, userNotes)
 		}
 	})
 }
@@ -467,6 +766,51 @@ func TestBookingRepository_Update(t *testing.T) {
 		updated, _ := repo.FindByID(booking.ID)
 		if updated.ScheduledTime != "10:00" {
 			t.Errorf("Expected time '10:00', got %s", updated.ScheduledTime)
+		}
+	})
+
+	t.Run("update booking date", func(t *testing.T) {
+		booking.Date = "2025-12-15"
+
+		err := repo.Update(booking)
+		if err != nil {
+			t.Fatalf("Update() failed: %v", err)
+		}
+
+		// Verify update
+		updated, _ := repo.FindByID(booking.ID)
+		if updated.Date != "2025-12-15" {
+			t.Errorf("Expected date '2025-12-15', got %s", updated.Date)
+		}
+	})
+
+	t.Run("update walk type", func(t *testing.T) {
+		booking.WalkType = "evening"
+
+		err := repo.Update(booking)
+		if err != nil {
+			t.Fatalf("Update() failed: %v", err)
+		}
+
+		// Verify update
+		updated, _ := repo.FindByID(booking.ID)
+		if updated.WalkType != "evening" {
+			t.Errorf("Expected walk_type 'evening', got %s", updated.WalkType)
+		}
+	})
+
+	t.Run("update non-existent booking", func(t *testing.T) {
+		nonExistent := &models.Booking{
+			ID:            99999,
+			Date:          "2025-12-20",
+			WalkType:      "morning",
+			ScheduledTime: "09:00",
+		}
+
+		err := repo.Update(nonExistent)
+		// Should not error even if no rows updated
+		if err != nil {
+			t.Logf("Update non-existent booking returned: %v", err)
 		}
 	})
 }

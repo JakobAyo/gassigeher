@@ -120,6 +120,13 @@ func TestBlockedDateRepository_FindByDate(t *testing.T) {
 			t.Error("Expected nil for non-existent date")
 		}
 	})
+
+	t.Run("empty date string", func(t *testing.T) {
+		blockedDate, _ := repo.FindByDate("")
+		if blockedDate != nil {
+			t.Error("Expected nil for empty date")
+		}
+	})
 }
 
 // DONE: TestBlockedDateRepository_IsBlocked tests checking if a date is blocked
