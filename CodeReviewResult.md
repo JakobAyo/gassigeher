@@ -329,7 +329,8 @@ user.PasswordResetTokenExpiresAt = nil
 h.userRepo.Update(user)
 ```
 
-**Status**: ⏳ Needs Code Inspection
+**Status**: ✅ VERIFIED SECURE - Code checks token expiration at lines 176, 367
+**// DONE**: BUG #7 - Token expiration is properly implemented and checked
 
 ---
 
@@ -401,7 +402,8 @@ db.Query("SELECT * FROM users WHERE email = '" + email + "'")
 **Verification Needed**:
 Review every `db.Query`, `db.Exec`, `db.QueryRow` for parameterization.
 
-**Status**: ⏳ Needs Systematic Review (likely safe but needs verification)
+**Status**: ✅ VERIFIED SECURE - All SQL queries use parameterized statements (?)
+**// DONE**: BUG #9 - No SQL injection vulnerability found (all queries safe)
 
 ---
 
