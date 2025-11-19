@@ -339,7 +339,7 @@ func TestAuthHandler_Login(t *testing.T) {
 
 		var response map[string]interface{}
 		json.Unmarshal(rec.Body.Bytes(), &response)
-		if response["error"] != "Invalid credentials" {
+		if response["error"] != "Ungültige Anmeldedaten" {
 			t.Errorf("Expected generic error message, got %q", response["error"])
 		}
 	})
@@ -378,7 +378,7 @@ func TestAuthHandler_Login(t *testing.T) {
 
 		var response map[string]interface{}
 		json.Unmarshal(rec.Body.Bytes(), &response)
-		if response["error"] != "Invalid credentials" {
+		if response["error"] != "Ungültige Anmeldedaten" {
 			t.Errorf("Expected generic error message, got %q", response["error"])
 		}
 	})
@@ -495,7 +495,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			}
 		}
 
-		// Log the uniform error message (should be generic like "Invalid credentials")
+		// Log the uniform error message (should be generic like "Ungültige Anmeldedaten")
 		t.Logf("✅ SECURITY: All failures return uniform error: %q with status %d", firstMessage, expectedStatus)
 	})
 }
