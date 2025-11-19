@@ -186,14 +186,17 @@ func TestCORSMiddleware(t *testing.T) {
 
 	t.Run("adds CORS headers to GET request", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/test", nil)
+		// BUG FIX #1: Test updated for restricted CORS policy
+		req.Header.Set("Origin", "http://localhost:8080")
 		rec := httptest.NewRecorder()
 
 		handler.ServeHTTP(rec, req)
 
 		headers := rec.Header()
 
-		if headers.Get("Access-Control-Allow-Origin") != "*" {
-			t.Error("Expected Access-Control-Allow-Origin to be *")
+		// After BUG #1 fix: CORS returns requesting origin, not *
+		if headers.Get("Access-Control-Allow-Origin") != "http://localhost:8080" {
+			t.Errorf("Expected Access-Control-Allow-Origin to be http://localhost:8080, got %s", headers.Get("Access-Control-Allow-Origin"))
 		}
 
 		if headers.Get("Access-Control-Allow-Methods") == "" {
