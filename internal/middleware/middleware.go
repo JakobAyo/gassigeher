@@ -91,7 +91,7 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 			authService := services.NewAuthService(jwtSecret, 24) // expiration not used here
 			claims, err := authService.ValidateJWT(tokenString)
 			if err != nil {
-				http.Error(w, fmt.Sprintf(`{"error":"Invalid token: %v"}`, err), http.StatusUnauthorized)
+				http.Error(w, `{"error":"Unauthorized"}` // BUG FIX #3, http.StatusUnauthorized)
 				return
 			}
 
