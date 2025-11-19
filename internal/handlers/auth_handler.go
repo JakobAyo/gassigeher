@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"regexp"
 	"database/sql"
 	"encoding/json"
 	"fmt"
