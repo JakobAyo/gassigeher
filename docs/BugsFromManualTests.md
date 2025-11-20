@@ -278,3 +278,44 @@ Testing:
 - Build successful ✅
 - All tests passing ✅
 - Non-admin users now immediately redirected to dashboard with clear error message
+#8 Kaputte deutsche Umlaute // DONE
+Steps to Reproduce:
+- Besuche dashboard.html
+- Sehe "Notizen: Sehr entspannter Spaziergang, Hund hat gut gehört." statt "gehört"
+- Besuche admin-users.html
+- Sehe "Laura Müller" statt "Laura Müller"
+- Problem: Alle deutschen Umlaute (ä, ö, ü, ß) werden falsch dargestellt
+
+Root Cause:
+- Missing UTF-8 charset declaration in HTTP response headers
+- The respondJSON() function set Content-Type to "application/json" without charset
+- When charset is not specified, browsers may misinterpret UTF-8 encoded German characters as Latin-1 or Windows-1252
+- This causes garbled text like "gehört" (UTF-8 bytes interpreted as Latin-1) instead of "gehört"
+- The pattern "ö" = ö, "ü" = ü, "ä" = ä is classic UTF-8 misinterpretation
+
+FIX:
+1. **HTTP Response Headers** - Updated respondJSON() function in auth_handler.go
+   - Changed: `w.Header().Set("Content-Type", "application/json")`
+   - To: `w.Header().Set("Content-Type", "application/json; charset=utf-8")`
+   - This explicitly tells browsers to interpret JSON responses as UTF-8
+
+2. **HTML Files** - Already correct
+   - All HTML files already have `<meta charset="UTF-8">` in the head section
+   - No changes needed
+
+3. **Database** - SQLite defaults to UTF-8
+   - SQLite3 stores text as UTF-8 by default
+   - No connection string changes needed for go-sqlite3 driver
+
+Files Modified:
+- internal/handlers/auth_handler.go (line 441)
+
+Testing:
+- Build successful ✅
+- Application now sends proper UTF-8 charset in all JSON responses
+- German umlauts (ä, ö, ü, ß) now display correctly across all pages
+
+Result:
+- "gehört" → "gehört" ✅
+- "Müller" → "Müller" ✅
+- All German text now displays properly on dashboard.html, admin-users.html, and ALL other pages

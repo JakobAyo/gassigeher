@@ -7,6 +7,11 @@ param(
     [string]$EnvFile = ".\.env"
 )
 
+# CRITICAL: Set console and output encoding to UTF-8 to handle German umlauts correctly
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+
 # Color output helpers
 function Write-Step { param($msg) Write-Host "==> $msg" -ForegroundColor Cyan }
 function Write-Success { param($msg) Write-Host "[OK] $msg" -ForegroundColor Green }
@@ -371,9 +376,11 @@ Write-Info "Generated 4 experience requests"
 [void]$sql.AppendLine("")
 [void]$sql.AppendLine("-- Data generation complete")
 
-# Write SQL file
-$sql.ToString() | Out-File -FilePath $sqlFile -Encoding UTF8
-Write-Success "SQL file created: $sqlFile"
+# Write SQL file with UTF-8 encoding (no BOM) to ensure proper umlaut handling
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$sqlFilePath = Join-Path $PSScriptRoot "..\$sqlFile"
+[System.IO.File]::WriteAllText($sqlFilePath, $sql.ToString(), $utf8NoBom)
+Write-Success "SQL file created with UTF-8 (no BOM): $sqlFile"
 
 # Execute SQL file
 Write-Step "Executing SQL file..."

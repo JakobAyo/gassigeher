@@ -1,0 +1,1 @@
+ powershell.exe -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; .\scripts\gentestdata.ps1"
