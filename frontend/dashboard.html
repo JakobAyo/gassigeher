@@ -100,8 +100,13 @@
 
             await window.i18n.load();
 
+            // Explicitly update all translations after load
+            console.log('i18n loaded, updating translations...');
+            window.i18n.updateElement(document.body);
+
             try {
                 currentUser = await api.getMe();
+                console.log('Current user:', currentUser);
                 updateHeaderPhoto();
 
                 // Show admin area link if user is admin

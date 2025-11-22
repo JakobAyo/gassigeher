@@ -85,6 +85,11 @@
             }
 
             await window.i18n.load();
+
+            // Explicitly update all translations after load
+            console.log('i18n loaded, updating translations...');
+            window.i18n.updateElement(document.body);
+
             loadUsers();
         });
 

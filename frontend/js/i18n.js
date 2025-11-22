@@ -55,6 +55,27 @@ class I18n {
         });
     }
 
+    // Manual method to update translations for a specific element or container
+    updateElement(element = document) {
+        element.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            const translation = this.t(key);
+
+            // Check if element has data-i18n-attr to translate attributes
+            if (el.dataset.i18nAttr) {
+                el.setAttribute(el.dataset.i18nAttr, translation);
+            } else {
+                el.textContent = translation;
+            }
+        });
+
+        // Apply placeholder translations
+        element.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.dataset.i18nPlaceholder;
+            el.placeholder = this.t(key);
+        });
+    }
+
     // Change locale and reload
     async changeLocale(locale) {
         this.locale = locale;
