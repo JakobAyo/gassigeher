@@ -27,8 +27,7 @@ func NewEmailProvider(config *EmailConfig) (EmailProvider, error) {
 		return NewGmailProvider(config)
 
 	case "smtp":
-		// SMTP provider will be implemented in Phase 2
-		return nil, fmt.Errorf("SMTP provider not yet implemented - coming in Phase 2")
+		return NewSMTPProvider(config)
 
 	default:
 		return nil, fmt.Errorf("unsupported email provider: %s (supported: gmail, smtp)", config.Provider)
@@ -84,11 +83,10 @@ func validateSMTPConfig(config *EmailConfig) error {
 	if config.SMTPPort < 1 || config.SMTPPort > 65535 {
 		return fmt.Errorf("SMTP_PORT must be between 1 and 65535")
 	}
-	if config.SMTPUsername == "" {
-		return fmt.Errorf("SMTP_USERNAME is required for SMTP provider")
-	}
-	if config.SMTPPassword == "" {
-		return fmt.Errorf("SMTP_PASSWORD is required for SMTP provider")
+	// Username and password are optional (some SMTP servers don't require auth)
+	// But if one is provided, both should be provided
+	if (config.SMTPUsername != "" && config.SMTPPassword == "") || (config.SMTPUsername == "" && config.SMTPPassword != "") {
+		return fmt.Errorf("both SMTP_USERNAME and SMTP_PASSWORD must be provided together")
 	}
 	if config.SMTPFromEmail == "" {
 		return fmt.Errorf("SMTP_FROM_EMAIL is required for SMTP provider")
