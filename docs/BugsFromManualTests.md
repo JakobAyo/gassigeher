@@ -319,3 +319,25 @@ Result:
 - "gehört" → "gehört" ✅
 - "Müller" → "Müller" ✅
 - All German text now displays properly on dashboard.html, admin-users.html, and ALL other pages
+
+#9 If you login as admin you get to dashboard.html. The other pages for admin like admin-dashboard.html are also available for, but if you wouldn't know that the URL exists, you would never have to chance to navigate to there. It is OK that the navigation is separated like this, but admin area and non-admin area should be linked to each other and it should be switch-able.
+
+**// DONE** - Fixed by adding area switcher links:
+- User pages: Added "🔧 Admin-Bereich" link (visible only to admins) that links to admin-dashboard.html
+- Admin pages: Added "👤 Benutzer-Bereich" link (always visible) that links to dashboard.html
+- Users can now easily switch between user and admin areas
+- Updated all 12 pages (3 user pages + 9 admin pages including dashboard.html)
+
+#10 The navigation bar in mobile is for normal user and admin is too large have a fix size. So a bigger part of the page always should navigation bar. Navigation bar should be per default be hidden and it should be on the left top corner. If clicking to that the full navigation should be shown.
+
+**// DONE** - Fixed by implementing hamburger menu for mobile:
+- Added hamburger button (☰) in top-left corner of header on mobile
+- Navigation menu is hidden by default on mobile (<768px width)
+- Clicking hamburger button opens slide-in navigation from left
+- Navigation slides out with smooth animation
+- Added dark overlay behind menu when open (clicking overlay closes menu)
+- Menu closes automatically when clicking on any navigation link
+- Navigation width: 280px, positioned off-screen by default (left: -280px)
+- CSS styling added in main.css with @media query for mobile
+- JavaScript toggle function in nav-menu.js (reusable across all pages)
+- Updated all 12 pages with new mobile navigation system

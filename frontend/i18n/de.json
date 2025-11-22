@@ -5,7 +5,9 @@
     "register": "Registrieren",
     "logout": "Abmelden",
     "profile": "Profil",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "admin_area": "🔧 Admin-Bereich",
+    "user_area": "👤 Benutzer-Bereich"
   },
   "auth": {
     "login": "Anmelden",

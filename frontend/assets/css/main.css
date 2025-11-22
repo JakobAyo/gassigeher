@@ -136,6 +136,38 @@ nav a:hover {
     transform: translateY(-2px);
 }
 
+/* Hamburger Menu Button */
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-white);
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    transition: transform 0.3s ease;
+}
+
+.menu-toggle:hover {
+    transform: scale(1.1);
+}
+
+.menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Area Switcher Link Styles */
+.area-switcher {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: var(--border-radius);
+    padding: 0.4rem 0.8rem;
+}
+
+.area-switcher:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
 /* Buttons */
 .btn {
     display: inline-block;
@@ -625,17 +657,93 @@ footer a:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
-    header .container {
-        flex-direction: column;
-        gap: var(--spacing-md);
+    /* Show hamburger menu button on mobile */
+    .menu-toggle {
+        display: block;
+        position: absolute;
+        left: var(--spacing-md);
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1001;
     }
 
+    /* Header adjustments for mobile */
+    header .container {
+        flex-direction: row;
+        align-items: center;
+        position: relative;
+    }
+
+    /* Center the logo on mobile */
+    .logo {
+        flex: 1;
+        text-align: center;
+    }
+
+    /* Hide navigation by default on mobile */
+    nav {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100vh;
+        background: linear-gradient(180deg, var(--header-bg) 0%, var(--primary-green) 100%);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        transition: left 0.3s ease;
+        z-index: 999;
+        overflow-y: auto;
+        padding-top: 60px;
+    }
+
+    /* Show navigation when active */
+    nav.active {
+        left: 0;
+    }
+
+    /* Navigation list styling for mobile */
     nav ul {
         flex-direction: column;
-        text-align: center;
-        gap: var(--spacing-sm);
+        text-align: left;
+        gap: 0;
+        padding: var(--spacing-md);
     }
 
+    nav ul li {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    nav ul li:last-child {
+        border-bottom: none;
+    }
+
+    nav a {
+        display: block;
+        padding: var(--spacing-md);
+        transition: background 0.2s ease;
+    }
+
+    nav a:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: none;
+    }
+
+    /* Overlay for mobile menu */
+    .nav-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+    }
+
+    .nav-overlay.active {
+        display: block;
+    }
+
+    /* Other responsive adjustments */
     .hero h1 {
         font-size: 2rem;
     }

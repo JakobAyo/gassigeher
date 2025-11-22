@@ -9,8 +9,9 @@
 <body>
     <header>
         <div class="container">
+            <button class="menu-toggle" onclick="toggleMenu()" aria-label="Menu">☰</button>
             <a href="/" class="logo">🐕 Gassigeher</a>
-            <nav>
+            <nav id="main-nav">
                 <ul>
                     <li><a href="/dashboard.html" data-i18n="nav.dashboard">Dashboard</a></li>
                     <li><a href="/dogs.html" data-i18n="dogs.all_dogs">Hunde</a></li>
@@ -19,11 +20,13 @@
                         <span id="header-photo" style="width: 32px; height: 32px; border-radius: 50%; background: #ddd; display: inline-flex; align-items: center; justify-content: center; overflow: hidden;">👤</span>
                         <span data-i18n="nav.profile">Profil</span>
                     </a></li>
+                    <li id="admin-area-link" style="display: none;"><a href="/admin-dashboard.html" class="area-switcher" data-i18n="nav.admin_area">🔧 Admin-Bereich</a></li>
                     <li><a href="#" onclick="api.logout()" data-i18n="nav.logout">Abmelden</a></li>
                 </ul>
             </nav>
         </div>
     </header>
+    <div class="nav-overlay" id="nav-overlay" onclick="toggleMenu()"></div>
 
     <main style="padding: 40px 0;">
         <div class="container">
@@ -82,6 +85,7 @@
         </div>
     </div>
 
+    <script src="/js/nav-menu.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/dog-photo-helpers.js"></script>
@@ -99,6 +103,10 @@
             try {
                 currentUser = await api.getMe();
                 updateHeaderPhoto();
+
+                // Show admin area link if user is admin
+                showAdminLinkIfAdmin(currentUser);
+
                 loadUpcomingBookings();
                 loadPastBookings();
             } catch (error) {

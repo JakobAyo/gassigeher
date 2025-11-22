@@ -9,8 +9,9 @@
 <body>
     <header>
         <div class="container">
+            <button class="menu-toggle" onclick="toggleMenu()" aria-label="Menu">☰</button>
             <a href="/" class="logo">🐕 Gassigeher Admin</a>
-            <nav>
+            <nav id="main-nav">
                 <ul>
                     <li><a href="/admin-dashboard.html" data-i18n="admin_dashboard.title">Dashboard</a></li>
                     <li><a href="/admin-dogs.html" data-i18n="dogs.manage_dogs">Hunde</a></li>
@@ -20,11 +21,13 @@
                     <li><a href="/admin-users.html" data-i18n="users.title">Benutzer</a></li>
                     <li><a href="/admin-reactivation-requests.html" data-i18n="reactivation.manage_requests">Reaktivierungen</a></li>
                     <li><a href="/admin-settings.html" data-i18n="admin_dashboard.system_settings">Einstellungen</a></li>
+                    <li><a href="/dashboard.html" class="area-switcher" data-i18n="nav.user_area">👤 Benutzer-Bereich</a></li>
                     <li><a href="#" onclick="api.logout()" data-i18n="nav.logout">Abmelden</a></li>
                 </ul>
             </nav>
         </div>
     </header>
+    <div class="nav-overlay" id="nav-overlay" onclick="toggleMenu()"></div>
 
     <main style="padding: 40px 0;">
         <div class="container">
@@ -37,6 +40,7 @@
         </div>
     </main>
 
+    <script src="/js/nav-menu.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/api.js"></script>
     <script>
