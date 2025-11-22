@@ -23,15 +23,19 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
-	// Initialize database
-	db, err := database.Initialize(cfg.DatabasePath)
+	// Initialize database with multi-database support
+	dbConfig := cfg.GetDBConfig()
+	db, dialect, err := database.InitializeWithConfig(dbConfig)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
 
-	// Run migrations
-	if err := database.RunMigrations(db); err != nil {
+	// Log database type for transparency
+	log.Printf("Using database: %s", dialect.Name())
+
+	// Run migrations with dialect support
+	if err := database.RunMigrationsWithDialect(db, dialect); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 

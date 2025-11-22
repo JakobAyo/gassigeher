@@ -19,16 +19,38 @@
 
 ## Server Requirements
 
+### Base Requirements (All Deployments)
+
 - **CPU**: 1 core minimum, 2+ cores recommended
-- **RAM**: 512MB minimum, 1GB+ recommended
+- **RAM**: 512MB minimum, 1GB+ recommended (2GB+ for MySQL/PostgreSQL)
 - **Disk**: 10GB minimum, 20GB+ recommended
 - **Go**: 1.24 or higher
-- **SQLite**: 3.35 or higher
 - **nginx**: Latest stable version
+
+### Database Options
+
+**SQLite** (Default - Best for <1,000 users):
+- **SQLite**: 3.35 or higher
+- No additional server needed
+- Zero configuration
+
+**MySQL** (Best for 1,000-50,000 users):
+- **MySQL**: 8.0 or higher
+- Additional 512MB RAM recommended
+- Separate database server optional
+
+**PostgreSQL** (Best for 10,000+ users):
+- **PostgreSQL**: 12 or higher
+- Additional 1GB RAM recommended
+- Separate database server recommended
+
+See **[Database_Selection_Guide.md](Database_Selection_Guide.md)** for choosing the right database.
 
 ## Step-by-Step Deployment
 
 ### 1. Server Setup
+
+#### Base System (Required for All)
 
 ```bash
 # Update system
@@ -36,11 +58,50 @@ sudo apt update
 sudo apt upgrade -y
 
 # Install required packages
-sudo apt install -y golang sqlite3 nginx certbot python3-certbot-nginx git
+sudo apt install -y golang nginx certbot python3-certbot-nginx git
 
 # Verify Go installation
 go version
 ```
+
+#### Database Installation (Choose One)
+
+**Option A: SQLite (Default)**
+
+```bash
+# Install SQLite
+sudo apt install -y sqlite3
+
+# Verify installation
+sqlite3 --version
+```
+
+**Option B: MySQL**
+
+```bash
+# Install MySQL Server
+sudo apt install -y mysql-server
+
+# Secure MySQL installation
+sudo mysql_secure_installation
+
+# Verify installation
+mysql --version
+```
+
+See **[MySQL_Setup_Guide.md](MySQL_Setup_Guide.md)** for complete MySQL configuration.
+
+**Option C: PostgreSQL**
+
+```bash
+# Install PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+
+# Verify installation
+psql --version
+```
+
+See **[PostgreSQL_Setup_Guide.md](PostgreSQL_Setup_Guide.md)** for complete PostgreSQL configuration.
 
 ### 2. Create Application User
 
@@ -85,17 +146,20 @@ chmod +x /var/gassigeher/*.sh
 sudo nano /var/gassigeher/config/.env
 ```
 
-Copy and configure:
+Choose configuration based on your database:
+
+#### Option A: SQLite Configuration (Default)
 
 ```bash
 # Application
 PORT=8080
 ENVIRONMENT=production
 
-# Database
+# Database - SQLite
+DB_TYPE=sqlite
 DATABASE_PATH=/var/gassigeher/data/gassigeher.db
 
-# JWT (Generate secure random string)
+# JWT (Generate secure random string: openssl rand -base64 32)
 JWT_SECRET=your-super-secret-256-bit-random-string-here
 JWT_EXPIRATION_HOURS=24
 
@@ -118,7 +182,95 @@ CANCELLATION_NOTICE_HOURS=12
 AUTO_DEACTIVATION_DAYS=365
 ```
 
-**Secure the .env file:**
+#### Option B: MySQL Configuration
+
+```bash
+# Application
+PORT=8080
+ENVIRONMENT=production
+
+# Database - MySQL
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=gassigeher
+DB_USER=gassigeher_user
+DB_PASSWORD=your_secure_mysql_password
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
+DB_CONN_MAX_LIFETIME=5
+
+# JWT (Generate secure random string: openssl rand -base64 32)
+JWT_SECRET=your-super-secret-256-bit-random-string-here
+JWT_EXPIRATION_HOURS=24
+
+# Admin (Comma-separated admin emails)
+ADMIN_EMAILS=admin@yourdomain.com
+
+# Gmail API (from Google Cloud Console)
+GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=your-client-secret
+GMAIL_REFRESH_TOKEN=your-refresh-token
+GMAIL_FROM_EMAIL=noreply@yourdomain.com
+
+# Uploads
+UPLOAD_DIR=/var/gassigeher/uploads
+MAX_UPLOAD_SIZE_MB=5
+
+# System Settings (defaults)
+BOOKING_ADVANCE_DAYS=14
+CANCELLATION_NOTICE_HOURS=12
+AUTO_DEACTIVATION_DAYS=365
+```
+
+**Note**: Create MySQL database and user first (see [MySQL_Setup_Guide.md](MySQL_Setup_Guide.md)).
+
+#### Option C: PostgreSQL Configuration
+
+```bash
+# Application
+PORT=8080
+ENVIRONMENT=production
+
+# Database - PostgreSQL
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=gassigeher
+DB_USER=gassigeher_user
+DB_PASSWORD=your_secure_postgres_password
+DB_SSLMODE=require
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
+DB_CONN_MAX_LIFETIME=5
+
+# JWT (Generate secure random string: openssl rand -base64 32)
+JWT_SECRET=your-super-secret-256-bit-random-string-here
+JWT_EXPIRATION_HOURS=24
+
+# Admin (Comma-separated admin emails)
+ADMIN_EMAILS=admin@yourdomain.com
+
+# Gmail API (from Google Cloud Console)
+GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=your-client-secret
+GMAIL_REFRESH_TOKEN=your-refresh-token
+GMAIL_FROM_EMAIL=noreply@yourdomain.com
+
+# Uploads
+UPLOAD_DIR=/var/gassigeher/uploads
+MAX_UPLOAD_SIZE_MB=5
+
+# System Settings (defaults)
+BOOKING_ADVANCE_DAYS=14
+CANCELLATION_NOTICE_HOURS=12
+AUTO_DEACTIVATION_DAYS=365
+```
+
+**Note**: Create PostgreSQL database and user first (see [PostgreSQL_Setup_Guide.md](PostgreSQL_Setup_Guide.md)).
+
+#### Secure the .env file
+
 ```bash
 sudo chmod 600 /var/gassigeher/config/.env
 sudo chown gassigeher:gassigeher /var/gassigeher/config/.env
@@ -352,6 +504,8 @@ sudo systemctl status gassigeher
 
 ### Database Maintenance
 
+#### SQLite Maintenance
+
 ```bash
 # Vacuum database (optimize)
 sqlite3 /var/gassigeher/data/gassigeher.db "VACUUM;"
@@ -361,6 +515,32 @@ sqlite3 /var/gassigeher/data/gassigeher.db "PRAGMA integrity_check;"
 
 # View database size
 du -h /var/gassigeher/data/gassigeher.db
+```
+
+#### MySQL Maintenance
+
+```bash
+# Optimize tables
+mysql -u gassigeher_user -p gassigeher -e "OPTIMIZE TABLE users, dogs, bookings, blocked_dates, experience_requests, reactivation_requests, system_settings;"
+
+# Check tables
+mysql -u gassigeher_user -p gassigeher -e "CHECK TABLE users, dogs, bookings;"
+
+# View database size
+mysql -u gassigeher_user -p gassigeher -e "SELECT table_schema AS 'Database', ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)' FROM information_schema.tables WHERE table_schema='gassigeher';"
+```
+
+#### PostgreSQL Maintenance
+
+```bash
+# Vacuum and analyze
+sudo -u postgres psql -d gassigeher -c "VACUUM ANALYZE;"
+
+# Reindex database
+sudo -u postgres psql -d gassigeher -c "REINDEX DATABASE gassigeher;"
+
+# View database size
+sudo -u postgres psql -d gassigeher -c "SELECT pg_size_pretty(pg_database_size('gassigeher'));"
 ```
 
 ### Restore from Backup
@@ -483,13 +663,30 @@ For issues or questions:
 
 ## Scaling Considerations
 
-For high traffic:
-- Use connection pooling for database
-- Consider PostgreSQL instead of SQLite
-- Add Redis for session caching
-- Use CDN for static assets
-- Load balancer for multiple instances
-- Separate cron jobs to different server
+### Database Scaling
+
+**When to Migrate from SQLite:**
+- Approaching 1,000 active users
+- >10 concurrent write operations
+- Need for replication/high availability
+- Multiple application servers
+
+**Migration Path:**
+1. **SQLite → MySQL**: Good for web-scale (1,000-50,000 users)
+2. **SQLite → PostgreSQL**: Best for enterprise (10,000+ users)
+
+See **[Database_Selection_Guide.md](Database_Selection_Guide.md)** for migration procedures.
+
+### Application Scaling
+
+For high traffic (beyond single server):
+- **Connection Pooling**: Already configured for MySQL/PostgreSQL
+- **Database Replication**: Master-slave setup for read scaling
+- **Caching Layer**: Add Redis for sessions and frequently accessed data
+- **CDN**: CloudFlare or AWS CloudFront for static assets
+- **Load Balancer**: nginx or HAProxy for multiple app instances
+- **Separate Services**: Move cron jobs to dedicated server
+- **Monitoring**: Prometheus + Grafana for metrics
 
 ---
 
@@ -498,6 +695,12 @@ For high traffic:
 ---
 
 ## Related Documentation
+
+**Database Setup:**
+- [Database_Selection_Guide.md](Database_Selection_Guide.md) - Choosing the right database
+- [MySQL_Setup_Guide.md](MySQL_Setup_Guide.md) - Complete MySQL configuration
+- [PostgreSQL_Setup_Guide.md](PostgreSQL_Setup_Guide.md) - Complete PostgreSQL configuration
+- [MultiDatabase_Testing_Guide.md](MultiDatabase_Testing_Guide.md) - Testing across databases
 
 **After Deployment:**
 - [USER_GUIDE.md](USER_GUIDE.md) - Share with end users
@@ -508,6 +711,7 @@ For high traffic:
 - [README.md](../README.md) - Project overview
 - [ImplementationPlan.md](ImplementationPlan.md) - Complete architecture
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Executive summary
+- [DatabasesSupportPlan.md](DatabasesSupportPlan.md) - Multi-database implementation details
 
 **For Developers:**
 - [CLAUDE.md](../CLAUDE.md) - Development guide

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gassigeher is a **complete production-ready** dog walking booking system for animal shelters. Built with Go backend + SQLite and Vanilla JavaScript frontend. All 10 implementation phases are complete.
+Gassigeher is a **complete production-ready** dog walking booking system for animal shelters. Built with Go backend (supports SQLite, MySQL, PostgreSQL) and Vanilla JavaScript frontend. All 10 implementation phases are complete.
 
 **Status**: ✅ Production ready, fully functional, deployment package included.
 
@@ -337,6 +337,223 @@ Three settings stored in `system_settings` table:
 - `auto_deactivation_days` (default: 365)
 
 Admins can change via settings page → updates take effect immediately.
+
+## Multi-Database Support
+
+### Overview
+
+The application supports **three database backends** with complete feature parity:
+- **SQLite** (default) - Zero-config, perfect for development and small deployments (<1,000 users)
+- **MySQL** - Web-scale performance for medium deployments (1,000-50,000 users)
+- **PostgreSQL** - Enterprise-grade for large deployments (10,000+ users)
+
+**Key Principle**: All SQL is database-agnostic. Repositories use standard SQL that works identically across all three databases.
+
+### Configuration
+
+Set database type via environment variable:
+
+```bash
+# SQLite (default)
+DB_TYPE=sqlite
+DATABASE_PATH=./gassigeher.db
+
+# MySQL
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=gassigeher
+DB_USER=gassigeher_user
+DB_PASSWORD=secure_password
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
+
+# PostgreSQL
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=gassigeher
+DB_USER=gassigeher_user
+DB_PASSWORD=secure_password
+DB_SSLMODE=require
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
+```
+
+See `.env.example` for complete configuration options.
+
+### Architecture
+
+**Dialect System** (`internal/database/dialect*.go`):
+- `Dialect` interface defines database-specific SQL syntax
+- `SQLiteDialect`, `MySQLDialect`, `PostgreSQLDialect` implementations
+- Handles differences in: auto-increment, boolean types, text types, placeholders
+- Factory pattern creates correct dialect based on `DB_TYPE`
+
+**Migration System** (`internal/database/migrations.go`):
+- Migrations defined in `internal/database/00X_*.go` files
+- Each migration has SQL for all three databases
+- Schema versioning via `schema_migrations` table
+- Idempotent - safe to run multiple times
+- Auto-runs on application startup
+
+**Repository Layer** (`internal/repository/*.go`):
+- Uses **100% standard SQL** (SELECT, INSERT, UPDATE, DELETE)
+- **No database-specific functions** in queries
+- Parameterized queries with `?` placeholders (works on all databases)
+- Date/time operations use Go's `time.Now()` instead of SQL functions
+
+### Database-Agnostic SQL Patterns
+
+**✅ CORRECT - Standard SQL (works everywhere):**
+
+```go
+// Use Go for dates
+currentDate := time.Now().Format("2006-01-02")
+query := `SELECT * FROM bookings WHERE date >= ? AND status = ?`
+db.Query(query, currentDate, "scheduled")
+
+// Standard comparison operators
+query := `SELECT * FROM users WHERE is_active = ? AND last_activity_at < ?`
+db.Query(query, 1, cutoffTime)
+
+// Standard aggregates
+query := `SELECT COUNT(*) FROM bookings WHERE dog_id = ?`
+```
+
+**❌ INCORRECT - Database-specific SQL:**
+
+```go
+// SQLite-specific (don't use!)
+query := `SELECT * FROM bookings WHERE date >= date('now')`
+
+// MySQL-specific (don't use!)
+query := `SELECT * FROM bookings WHERE date >= CURDATE()`
+
+// PostgreSQL-specific (don't use!)
+query := `SELECT * FROM bookings WHERE date >= CURRENT_DATE`
+```
+
+### Testing Across Databases
+
+**Run tests on all databases:**
+
+```bash
+# SQLite (default)
+go test ./... -v
+
+# MySQL (requires running MySQL server)
+DB_TYPE=mysql DB_TEST_MYSQL="user:pass@tcp(localhost:3306)/test_db" go test ./... -v
+
+# PostgreSQL (requires running PostgreSQL server)
+DB_TYPE=postgres DB_TEST_POSTGRES="postgres://user:pass@localhost:5432/test_db" go test ./... -v
+```
+
+**Docker Compose for testing:**
+
+```bash
+# Start test databases
+docker-compose -f docker-compose.test.yml up -d
+
+# Run tests against all databases
+./scripts/test_all_databases.sh  # Linux/Mac
+./scripts/test_all_databases.ps1  # Windows
+```
+
+See **[MultiDatabase_Testing_Guide.md](docs/MultiDatabase_Testing_Guide.md)** for comprehensive testing instructions.
+
+### When to Add Database-Specific Code
+
+**You DON'T need dialect-specific code if:**
+- ✅ Using standard SELECT, INSERT, UPDATE, DELETE
+- ✅ Using standard WHERE, JOIN, GROUP BY, ORDER BY
+- ✅ Using standard aggregates (COUNT, SUM, AVG, MIN, MAX)
+- ✅ Using Go's `time.Now()` for dates/timestamps
+- ✅ Using `?` placeholders for parameters
+
+**You NEED dialect-specific code only for:**
+- ❌ CREATE TABLE statements (auto-increment syntax varies)
+- ❌ ALTER TABLE statements (IF NOT EXISTS support varies)
+- ❌ INSERT OR IGNORE / UPSERT logic (syntax varies)
+- ❌ Special database functions (rare, avoid if possible)
+
+**For migrations**, add SQL for each database in the migration file:
+
+```go
+// internal/database/001_create_table.go
+func init() {
+    RegisterMigration(&Migration{
+        ID: "001_create_table",
+        Up: map[string]string{
+            "sqlite": `CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                is_active INTEGER DEFAULT 0
+            )`,
+            "mysql": `CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                is_active TINYINT(1) DEFAULT 0
+            )`,
+            "postgres": `CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                is_active BOOLEAN DEFAULT FALSE
+            )`,
+        },
+    })
+}
+```
+
+### Migration Best Practices
+
+1. **Always add SQL for all three databases** in every migration
+2. **Use IF NOT EXISTS** for CREATE TABLE (idempotency)
+3. **Test migration on all databases** before committing
+4. **Keep schema identical** across databases (same tables, columns, constraints)
+5. **Use schema_migrations table** for version tracking (automatic)
+
+### Connection Pooling
+
+**SQLite**: No pooling needed (file-based, single connection optimal)
+
+**MySQL/PostgreSQL**: Connection pooling configured automatically
+- `DB_MAX_OPEN_CONNS=25` - Maximum simultaneous connections
+- `DB_MAX_IDLE_CONNS=5` - Idle connections to keep in pool
+- `DB_CONN_MAX_LIFETIME=5` - Connection lifetime in minutes
+
+### Database Selection Guide
+
+**Choose SQLite if:**
+- Development or testing environment
+- Small shelter (<1,000 users)
+- Single server deployment
+- Zero setup time required
+- File-based backup preferred
+
+**Choose MySQL if:**
+- Medium to large shelter (1,000-50,000 users)
+- Proven web-scale performance needed
+- Replication/clustering required
+- Familiar with MySQL administration
+- Widely supported hosting
+
+**Choose PostgreSQL if:**
+- Enterprise deployment (10,000+ users)
+- Advanced features needed (full-text search, JSON columns)
+- Complex analytics queries
+- Strong ACID compliance critical
+- Multiple concurrent writes
+
+See **[Database_Selection_Guide.md](docs/Database_Selection_Guide.md)** for detailed comparison and migration procedures.
+
+### Related Documentation
+
+- **[DatabasesSupportPlan.md](docs/DatabasesSupportPlan.md)** - Complete implementation plan (2,300+ lines)
+- **[MySQL_Setup_Guide.md](docs/MySQL_Setup_Guide.md)** - MySQL installation and configuration
+- **[PostgreSQL_Setup_Guide.md](docs/PostgreSQL_Setup_Guide.md)** - PostgreSQL installation and configuration
+- **[Database_Selection_Guide.md](docs/Database_Selection_Guide.md)** - Choosing the right database
+- **[MultiDatabase_Testing_Guide.md](docs/MultiDatabase_Testing_Guide.md)** - Testing across databases
 
 ## Database Schema Key Points
 

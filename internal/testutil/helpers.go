@@ -2,31 +2,143 @@ package testutil
 
 import (
 	"database/sql"
+	"os"
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/tranm/gassigeher/internal/database"
 )
 
-// DONE: SetupTestDB creates an in-memory SQLite database for testing
+// SetupTestDB creates a test database (default: in-memory SQLite)
+// For backward compatibility, this defaults to SQLite
+// Use SetupTestDBWithType() to test with MySQL or PostgreSQL
 func SetupTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
+	return SetupTestDBWithType(t, "sqlite")
+}
+
+// SetupTestDBWithType creates a test database of the specified type
+// Supports: sqlite (in-memory), mysql, postgres
+// For MySQL/PostgreSQL, requires test database to be available (via Docker or local install)
+func SetupTestDBWithType(t *testing.T, dbType string) *sql.DB {
+	var db *sql.DB
+	var dialect database.Dialect
+	var err error
+
+	switch dbType {
+	case "sqlite", "":
+		// Use in-memory SQLite for fast testing
+		db, err = sql.Open("sqlite3", ":memory:")
+		if err != nil {
+			t.Fatalf("Failed to open SQLite test database: %v", err)
+		}
+		dialect = database.NewSQLiteDialect()
+
+		// Apply SQLite settings (PRAGMA foreign_keys, etc.)
+		if err := dialect.ApplySettings(db); err != nil {
+			t.Fatalf("Failed to apply SQLite settings: %v", err)
+		}
+
+	case "mysql":
+		// Use test MySQL database (requires DB_TEST_MYSQL env var)
+		dsn := os.Getenv("DB_TEST_MYSQL")
+		if dsn == "" {
+			t.Skip("MySQL test database not configured (set DB_TEST_MYSQL env var)")
+			return nil
+		}
+
+		db, err = sql.Open("mysql", dsn)
+		if err != nil {
+			t.Fatalf("Failed to open MySQL test database: %v", err)
+		}
+		dialect = database.NewMySQLDialect()
+
+		// Test connection
+		if err := db.Ping(); err != nil {
+			t.Skipf("MySQL test database not available: %v", err)
+			return nil
+		}
+
+		// Apply MySQL settings
+		if err := dialect.ApplySettings(db); err != nil {
+			t.Fatalf("Failed to apply MySQL settings: %v", err)
+		}
+
+		// Clean test database before use
+		cleanMySQLTestDB(t, db)
+
+	case "postgres":
+		// Use test PostgreSQL database (requires DB_TEST_POSTGRES env var)
+		dsn := os.Getenv("DB_TEST_POSTGRES")
+		if dsn == "" {
+			t.Skip("PostgreSQL test database not configured (set DB_TEST_POSTGRES env var)")
+			return nil
+		}
+
+		db, err = sql.Open("postgres", dsn)
+		if err != nil {
+			t.Fatalf("Failed to open PostgreSQL test database: %v", err)
+		}
+		dialect = database.NewPostgreSQLDialect()
+
+		// Test connection
+		if err := db.Ping(); err != nil {
+			t.Skipf("PostgreSQL test database not available: %v", err)
+			return nil
+		}
+
+		// Apply PostgreSQL settings
+		if err := dialect.ApplySettings(db); err != nil {
+			t.Fatalf("Failed to apply PostgreSQL settings: %v", err)
+		}
+
+		// Clean test database before use
+		cleanPostgreSQLTestDB(t, db)
+
+	default:
+		t.Fatalf("Unsupported database type for testing: %s", dbType)
 	}
 
-	// Run migrations
-	err = database.RunMigrations(db)
+	// Run migrations with dialect
+	err = database.RunMigrationsWithDialect(db, dialect)
 	if err != nil {
-		t.Fatalf("Failed to run migrations: %v", err)
+		t.Fatalf("Failed to run migrations on %s: %v", dbType, err)
 	}
 
+	// Cleanup after test
 	t.Cleanup(func() {
 		db.Close()
 	})
 
 	return db
+}
+
+// cleanMySQLTestDB drops all tables in the test database
+func cleanMySQLTestDB(t *testing.T, db *sql.DB) {
+	// Disable foreign key checks temporarily
+	_, _ = db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+
+	// Drop tables if they exist
+	tables := []string{"bookings", "blocked_dates", "experience_requests",
+		"reactivation_requests", "dogs", "users", "system_settings", "schema_migrations"}
+	for _, table := range tables {
+		_, _ = db.Exec("DROP TABLE IF EXISTS " + table)
+	}
+
+	// Re-enable foreign key checks
+	_, _ = db.Exec("SET FOREIGN_KEY_CHECKS = 1")
+}
+
+// cleanPostgreSQLTestDB drops all tables in the test database
+func cleanPostgreSQLTestDB(t *testing.T, db *sql.DB) {
+	// Drop tables if they exist (CASCADE to handle foreign keys)
+	tables := []string{"bookings", "blocked_dates", "experience_requests",
+		"reactivation_requests", "dogs", "users", "system_settings", "schema_migrations"}
+	for _, table := range tables {
+		_, _ = db.Exec("DROP TABLE IF EXISTS " + table + " CASCADE")
+	}
 }
 
 // DONE: SeedTestUser creates a test user and returns the ID

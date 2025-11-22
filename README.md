@@ -75,7 +75,7 @@ For production deployment, see **[DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 **Backend:**
 - Go 1.24+
-- SQLite database
+- Multi-database support (SQLite, MySQL, PostgreSQL)
 - gorilla/mux router
 - JWT authentication
 - bcrypt password hashing
@@ -298,9 +298,83 @@ PORT=3000 ./gassigeher
 
 ## Database
 
-The application uses SQLite with automatic migrations. The database file is created automatically on first run at the path specified in `DATABASE_PATH` (default: `./gassigeher.db`).
+The application supports **three database backends** with automatic migrations and feature parity across all options:
 
-### Tables Created
+### Supported Databases
+
+| Database | Best For | Max Users | Setup Time | Cost |
+|----------|----------|-----------|------------|------|
+| **SQLite** (default) | Development, small deployments | <1,000 | 5 min | $0 |
+| **MySQL** | Web apps, medium deployments | 10,000+ | 30 min | $ |
+| **PostgreSQL** | Enterprise, complex queries | 100,000+ | 45 min | $$ |
+
+### Quick Start - SQLite (Default)
+
+No configuration needed! The database file is created automatically on first run:
+
+```bash
+# Just run the application
+./gassigeher
+```
+
+Database file: `./gassigeher.db` (configurable via `DATABASE_PATH`)
+
+### MySQL Configuration
+
+```bash
+# In .env file
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=gassigeher
+DB_USER=gassigeher_user
+DB_PASSWORD=your_secure_password
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
+```
+
+See **[MySQL_Setup_Guide.md](docs/MySQL_Setup_Guide.md)** for complete setup instructions.
+
+### PostgreSQL Configuration
+
+```bash
+# In .env file
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=gassigeher
+DB_USER=gassigeher_user
+DB_PASSWORD=your_secure_password
+DB_SSLMODE=require
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
+```
+
+See **[PostgreSQL_Setup_Guide.md](docs/PostgreSQL_Setup_Guide.md)** for complete setup instructions.
+
+### Database Selection Guide
+
+**Choose SQLite if:**
+- Development or testing
+- Small animal shelter (<1,000 users)
+- Simple deployment (single server)
+- Zero setup time required
+
+**Choose MySQL if:**
+- Medium to large shelter (1,000-50,000 users)
+- Proven web-scale performance needed
+- Replication required
+- Familiar with MySQL administration
+
+**Choose PostgreSQL if:**
+- Enterprise deployment (10,000+ users)
+- Advanced features needed (JSON, full-text search)
+- Complex analytics queries
+- Strong ACID compliance required
+
+See **[Database_Selection_Guide.md](docs/Database_Selection_Guide.md)** for detailed comparison.
+
+### Tables Created (All Databases)
 - `users` - User accounts and profiles
 - `dogs` - Dog information
 - `bookings` - Walk bookings
@@ -308,6 +382,9 @@ The application uses SQLite with automatic migrations. The database file is crea
 - `experience_requests` - User level promotion requests
 - `reactivation_requests` - Account reactivation requests
 - `system_settings` - Configurable system settings
+- `schema_migrations` - Migration version tracking
+
+All migrations run automatically on application startup.
 
 ## Implementation Status
 
@@ -439,21 +516,33 @@ The application implements multiple security measures:
 
 ## Documentation
 
-**📚 Complete documentation suite: 6,150+ lines across 9 comprehensive guides**
+**📚 Complete documentation suite: 9,500+ lines across 15 comprehensive guides**
 
 See **[DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** for navigation guide.
 
+### Core Documentation
+
 | Document | Lines | Purpose | Audience |
 |----------|-------|---------|----------|
-| **[README.md](README.md)** | 500+ | Project overview, setup, API list | Developers |
+| **[README.md](README.md)** | 600+ | Project overview, setup, API list | Developers |
 | **[ImplementationPlan.md](docs/ImplementationPlan.md)** | 1,500+ | Complete architecture & all 10 phases | Technical Leads |
 | **[API.md](docs/API.md)** | 600+ | Complete REST API reference with examples | Developers/Integrators |
-| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** | 400+ | Step-by-step production deployment | DevOps/System Admins |
+| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** | 600+ | Production deployment (SQLite, MySQL, PostgreSQL) | DevOps/System Admins |
 | **[USER_GUIDE.md](docs/USER_GUIDE.md)** | 350+ | How to use the application (German) | End Users |
 | **[ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md)** | 500+ | Administrator operations manual | Administrators |
 | **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** | 500+ | Executive summary & statistics | Stakeholders |
-| **[CLAUDE.md](CLAUDE.md)** | 400+ | AI assistant development guide | AI Developers |
+| **[CLAUDE.md](CLAUDE.md)** | 500+ | AI assistant development guide | AI Developers |
 | **[DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** | 200+ | Documentation navigation | Everyone |
+
+### Database Documentation
+
+| Document | Lines | Purpose | Audience |
+|----------|-------|---------|----------|
+| **[Database_Selection_Guide.md](docs/Database_Selection_Guide.md)** | 300+ | Choosing the right database | Decision Makers |
+| **[MySQL_Setup_Guide.md](docs/MySQL_Setup_Guide.md)** | 400+ | Complete MySQL setup and configuration | DevOps/System Admins |
+| **[PostgreSQL_Setup_Guide.md](docs/PostgreSQL_Setup_Guide.md)** | 500+ | Complete PostgreSQL setup and configuration | DevOps/System Admins |
+| **[MultiDatabase_Testing_Guide.md](docs/MultiDatabase_Testing_Guide.md)** | 300+ | Testing across all database backends | Developers/QA |
+| **[DatabasesSupportPlan.md](docs/DatabasesSupportPlan.md)** | 2,300+ | Complete multi-database implementation plan | Technical Leads |
 
 **Not sure where to start?** See [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md).
 

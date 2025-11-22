@@ -259,13 +259,15 @@ func (r *DogRepository) Update(dog *models.Dog) error {
 // Delete deletes a dog (only if no future bookings exist)
 func (r *DogRepository) Delete(id int) error {
 	// Check for future bookings
+	// Use Go time instead of database-specific date('now') for portability
+	currentDate := time.Now().Format("2006-01-02")
 	checkQuery := `
 		SELECT COUNT(*) FROM bookings
-		WHERE dog_id = ? AND date >= date('now') AND status = 'scheduled'
+		WHERE dog_id = ? AND date >= ? AND status = 'scheduled'
 	`
 
 	var count int
-	err := r.db.QueryRow(checkQuery, id).Scan(&count)
+	err := r.db.QueryRow(checkQuery, id, currentDate).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("failed to check bookings: %w", err)
 	}
