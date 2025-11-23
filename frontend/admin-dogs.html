@@ -330,6 +330,103 @@
                 showAlert('success', 'Hund erfolgreich gelöscht');
                 loadDogs();
             } catch (error) {
+                // Check if error is due to future bookings
+                if (error.status === 409 && error.data && error.data.bookings) {
+                    // Show custom dialog with booking list
+                    showBookingsDialog(id, error.data.bookings);
+                } else {
+                    showAlert('error', error.message || 'Fehler beim Löschen');
+                }
+            }
+        }
+
+        function showBookingsDialog(dogId, bookings) {
+            // Create modal dialog
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+
+            const dialogContent = document.createElement('div');
+            dialogContent.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                max-width: 600px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            `;
+
+            // Build booking list HTML
+            const bookingList = bookings.map(booking => {
+                const walkTypeLabel = booking.walk_type === 'morning' ? 'Morgen' : 'Abend';
+                const userName = booking.User?.name || 'Unbekannt';
+                return `
+                    <li style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                        <strong>${booking.date}</strong> - ${walkTypeLabel} (${booking.scheduled_time || ''})
+                        <br>
+                        <small>Benutzer: ${userName}</small>
+                    </li>
+                `;
+            }).join('');
+
+            dialogContent.innerHTML = `
+                <h3 style="margin-top: 0; color: #dc3545;">⚠️ Dieser Hund hat zukünftige Buchungen</h3>
+                <p style="margin: 15px 0;">Folgende Buchungen sind für diesen Hund geplant:</p>
+                <ul style="list-style: none; padding: 0; margin: 20px 0;">
+                    ${bookingList}
+                </ul>
+                <p style="margin: 20px 0; font-weight: bold;">
+                    Möchten Sie alle diese Buchungen stornieren und die betroffenen Benutzer per E-Mail benachrichtigen?
+                </p>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button id="confirm-force-delete" class="btn btn-danger" style="flex: 1;">
+                        Ja, alle Buchungen stornieren und Hund löschen
+                    </button>
+                    <button id="cancel-delete" class="btn btn-secondary" style="flex: 1;">
+                        Nein, Hund behalten
+                    </button>
+                </div>
+            `;
+
+            dialog.appendChild(dialogContent);
+            document.body.appendChild(dialog);
+
+            // Handle button clicks
+            document.getElementById('confirm-force-delete').addEventListener('click', async () => {
+                dialog.remove();
+                await forceDeleteDog(dogId, bookings.length);
+            });
+
+            document.getElementById('cancel-delete').addEventListener('click', () => {
+                dialog.remove();
+            });
+
+            // Close on background click
+            dialog.addEventListener('click', (e) => {
+                if (e.target === dialog) {
+                    dialog.remove();
+                }
+            });
+        }
+
+        async function forceDeleteDog(id, bookingCount) {
+            try {
+                const result = await api.deleteDog(id, true); // force=true
+                const message = `Hund wurde gelöscht und ${result.cancelled_count || bookingCount} Buchung(en) wurden storniert. Betroffene Benutzer wurden per E-Mail benachrichtigt.`;
+                showAlert('success', message);
+                loadDogs();
+            } catch (error) {
                 showAlert('error', error.message || 'Fehler beim Löschen');
             }
         }

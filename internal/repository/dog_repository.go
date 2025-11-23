@@ -286,6 +286,82 @@ func (r *DogRepository) Delete(id int) error {
 	return nil
 }
 
+// ForceDelete deletes a dog and cancels all future bookings
+func (r *DogRepository) ForceDelete(id int) error {
+	// Delete the dog (bookings will remain but dog will be gone)
+	deleteQuery := `DELETE FROM dogs WHERE id = ?`
+	_, err := r.db.Exec(deleteQuery, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete dog: %w", err)
+	}
+
+	return nil
+}
+
+// GetFutureBookings returns all future bookings for a dog with user details
+func (r *DogRepository) GetFutureBookings(dogID int) ([]*models.Booking, error) {
+	currentDate := time.Now().Format("2006-01-02")
+	query := `
+		SELECT
+			b.id, b.user_id, b.dog_id, b.date, b.walk_type, b.scheduled_time, b.status,
+			b.completed_at, b.user_notes, b.admin_cancellation_reason, b.created_at, b.updated_at,
+			u.name as user_name, u.email as user_email
+		FROM bookings b
+		LEFT JOIN users u ON b.user_id = u.id
+		WHERE b.dog_id = ? AND b.date >= ? AND b.status = 'scheduled'
+		ORDER BY b.date ASC, b.scheduled_time ASC
+	`
+
+	rows, err := r.db.Query(query, dogID, currentDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query future bookings: %w", err)
+	}
+	defer rows.Close()
+
+	bookings := []*models.Booking{}
+	for rows.Next() {
+		booking := &models.Booking{
+			User: &models.User{},
+		}
+		var userName, userEmail sql.NullString
+
+		err := rows.Scan(
+			&booking.ID,
+			&booking.UserID,
+			&booking.DogID,
+			&booking.Date,
+			&booking.WalkType,
+			&booking.ScheduledTime,
+			&booking.Status,
+			&booking.CompletedAt,
+			&booking.UserNotes,
+			&booking.AdminCancellationReason,
+			&booking.CreatedAt,
+			&booking.UpdatedAt,
+			&userName,
+			&userEmail,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan booking: %w", err)
+		}
+
+		// Populate user details
+		if userName.Valid {
+			booking.User.Name = userName.String
+		} else {
+			booking.User.Name = "Deleted User"
+		}
+		if userEmail.Valid {
+			email := userEmail.String
+			booking.User.Email = &email
+		}
+
+		bookings = append(bookings, booking)
+	}
+
+	return bookings, nil
+}
+
 // ToggleAvailability toggles a dog's availability status
 func (r *DogRepository) ToggleAvailability(id int, isAvailable bool, reason *string) error {
 	var query string

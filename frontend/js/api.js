@@ -49,7 +49,11 @@ class API {
             const responseData = await response.json();
 
             if (!response.ok) {
-                throw new Error(responseData.error || 'Request failed');
+                // Create error with response data attached
+                const error = new Error(responseData.error || 'Request failed');
+                error.status = response.status;
+                error.data = responseData;
+                throw error;
             }
 
             return responseData;
@@ -168,8 +172,9 @@ class API {
         return this.request('PUT', `/dogs/${id}`, data);
     }
 
-    async deleteDog(id) {
-        return this.request('DELETE', `/dogs/${id}`);
+    async deleteDog(id, force = false) {
+        const endpoint = force ? `/dogs/${id}?force=true` : `/dogs/${id}`;
+        return this.request('DELETE', endpoint);
     }
 
     async uploadDogPhoto(dogId, file) {

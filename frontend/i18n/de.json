@@ -120,7 +120,13 @@
     "requires_level": "Erfordert Level",
     "years_old": "Jahre alt",
     "upload_photo": "Foto hochladen",
-    "confirm_delete": "Sind Sie sicher, dass Sie diesen Hund löschen möchten?"
+    "confirm_delete": "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
+    "has_future_bookings": "Dieser Hund hat zukünftige Buchungen",
+    "future_bookings_warning": "Folgende Buchungen sind für diesen Hund geplant:",
+    "cancel_bookings_question": "Möchten Sie alle diese Buchungen stornieren und die betroffenen Benutzer per E-Mail benachrichtigen?",
+    "cancel_all_and_delete": "Ja, alle Buchungen stornieren und Hund löschen",
+    "keep_dog": "Nein, Hund behalten",
+    "deleted_with_bookings": "Hund wurde gelöscht und {count} Buchung(en) wurden storniert. Betroffene Benutzer wurden per E-Mail benachrichtigt."
   },
   "bookings": {
     "title": "Buchungen",

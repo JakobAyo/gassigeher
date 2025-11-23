@@ -23,16 +23,26 @@ import (
 type DogHandler struct {
 	dogRepo      *repository.DogRepository
 	userRepo     *repository.UserRepository
+	bookingRepo  *repository.BookingRepository
 	imageService *services.ImageService
+	emailService *services.EmailService
 	config       *config.Config
 }
 
 // NewDogHandler creates a new dog handler
 func NewDogHandler(db *sql.DB, cfg *config.Config) *DogHandler {
+	// Initialize email service (may fail gracefully)
+	emailService, err := services.NewEmailService(services.ConfigToEmailConfig(cfg))
+	if err != nil {
+		fmt.Printf("Warning: Failed to initialize email service in DogHandler: %v\n", err)
+	}
+
 	return &DogHandler{
 		dogRepo:      repository.NewDogRepository(db),
 		userRepo:     repository.NewUserRepository(db),
+		bookingRepo:  repository.NewBookingRepository(db),
 		imageService: services.NewImageService(cfg.UploadDir),
+		emailService: emailService,
 		config:       cfg,
 	}
 }
@@ -271,10 +281,79 @@ func (h *DogHandler) DeleteDog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete (will fail if future bookings exist)
-	if err := h.dogRepo.Delete(id); err != nil {
+	// Check if force delete is requested
+	force := r.URL.Query().Get("force") == "true"
+
+	if force {
+		// Force delete: cancel all future bookings and delete dog
+		dog, err := h.dogRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch dog")
+			return
+		}
+		if dog == nil {
+			respondError(w, http.StatusNotFound, "Dog not found")
+			return
+		}
+
+		// Get all future bookings
+		bookings, err := h.dogRepo.GetFutureBookings(id)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch bookings")
+			return
+		}
+
+		// Cancel all future bookings
+		cancellationReason := fmt.Sprintf("Hund %s wurde aus dem System entfernt", dog.Name)
+		for _, booking := range bookings {
+			// Cancel the booking
+			err := h.bookingRepo.Cancel(booking.ID, &cancellationReason)
+			if err != nil {
+				log.Printf("ERROR: Failed to cancel booking %d: %v", booking.ID, err)
+				continue
+			}
+
+			// Send cancellation email to user if email service is available and user has email
+			if h.emailService != nil && booking.User != nil && booking.User.Email != nil && *booking.User.Email != "" {
+				go h.emailService.SendBookingCancellation(
+					*booking.User.Email,
+					booking.User.Name,
+					dog.Name,
+					booking.Date,
+					booking.WalkType,
+				)
+			}
+		}
+
+		// Now delete the dog
+		if err := h.dogRepo.ForceDelete(id); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to delete dog")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":          "Hund erfolgreich gelöscht",
+			"cancelled_count":  len(bookings),
+		})
+		return
+	}
+
+	// Normal delete (will fail if future bookings exist)
+	err = h.dogRepo.Delete(id)
+	if err != nil {
 		if strings.Contains(err.Error(), "future bookings") {
-			respondError(w, http.StatusConflict, "Cannot delete dog with future bookings")
+			// Get the future bookings to return to frontend
+			bookings, fetchErr := h.dogRepo.GetFutureBookings(id)
+			if fetchErr != nil {
+				respondError(w, http.StatusInternalServerError, "Failed to fetch bookings")
+				return
+			}
+
+			// Return conflict with booking details
+			respondJSON(w, http.StatusConflict, map[string]interface{}{
+				"error":    "Hund hat zukünftige Buchungen",
+				"bookings": bookings,
+			})
 		} else {
 			respondError(w, http.StatusInternalServerError, "Failed to delete dog")
 		}
@@ -282,7 +361,7 @@ func (h *DogHandler) DeleteDog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{
-		"message": "Dog deleted successfully",
+		"message": "Hund erfolgreich gelöscht",
 	})
 }
 
