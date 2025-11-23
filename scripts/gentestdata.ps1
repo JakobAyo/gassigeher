@@ -71,23 +71,21 @@ if (-not (Test-Path $dbPath)) {
 
 Write-Info "Using database: $dbPath"
 
-# Get admin email from env (must be valid email)
-$adminEmail = $env:ADMIN_EMAILS
-if (-not $adminEmail -and $envVars.ContainsKey('ADMIN_EMAILS')) {
-    $adminEmail = $envVars['ADMIN_EMAILS']
+# Get super admin email from env (must be valid email)
+$adminEmail = $env:SUPER_ADMIN_EMAIL
+if (-not $adminEmail -and $envVars.ContainsKey('SUPER_ADMIN_EMAIL')) {
+    $adminEmail = $envVars['SUPER_ADMIN_EMAIL']
 }
 if (-not $adminEmail) {
     $adminEmail = "admin@tierheim-goeppingen.de"
-    Write-Info "No ADMIN_EMAILS found, using default: $adminEmail"
+    Write-Info "No SUPER_ADMIN_EMAIL found, using default: $adminEmail"
 } else {
-    $adminEmails = $adminEmail -split ',' | ForEach-Object { $_.Trim() }
-    $adminEmail = $adminEmails[0]
     # Validate it's a proper email (contains @)
     if ($adminEmail -notmatch '@') {
-        Write-Info "ADMIN_EMAILS '$adminEmail' is not a valid email address, using default"
+        Write-Info "SUPER_ADMIN_EMAIL '$adminEmail' is not a valid email address, using default"
         $adminEmail = "admin@tierheim-goeppingen.de"
     } else {
-        Write-Info "Using admin email from .env: $adminEmail"
+        Write-Info "Using super admin email from .env: $adminEmail"
     }
 }
 
@@ -159,9 +157,9 @@ $userCount = 0
 $users = @()
 $now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-# Admin user
-[void]$sql.AppendLine("INSERT INTO users (email, name, phone, password_hash, experience_level, is_verified, is_active, terms_accepted_at, last_activity_at, created_at) VALUES")
-[void]$sql.AppendLine("('$adminEmail', 'Admin User', '+49 7161 12345', '$TEST_PASSWORD_HASH', 'orange', 1, 1, '$now', '$now', '$now'),")
+# Super Admin user (ID=1)
+[void]$sql.AppendLine("INSERT INTO users (email, name, phone, password_hash, experience_level, is_verified, is_active, is_admin, is_super_admin, terms_accepted_at, last_activity_at, created_at) VALUES")
+[void]$sql.AppendLine("('$adminEmail', 'Super Admin', '+49 7161 12345', '$TEST_PASSWORD_HASH', 'orange', 1, 1, 1, 1, '$now', '$now', '$now'),")
 $users += @{email=$adminEmail; level='orange'}
 $userCount++
 
@@ -186,7 +184,7 @@ foreach ($expLevel in $experienceLevels) {
         }
 
         $comma = if ($currentUser -eq $totalRegularUsers - 1) { ";" } else { "," }
-        [void]$sql.AppendLine("('$email', '$firstName $lastName', '$phone', '$TEST_PASSWORD_HASH', '$($expLevel.level)', 1, $isActive, '$now', '$lastActivity', '$now')$comma")
+        [void]$sql.AppendLine("('$email', '$firstName $lastName', '$phone', '$TEST_PASSWORD_HASH', '$($expLevel.level)', 1, $isActive, 0, 0, '$now', '$lastActivity', '$now')$comma")
 
         $users += @{email=$email; level=$expLevel.level}
         $userCount++
@@ -410,7 +408,7 @@ Write-Host "================================================================" -F
 Write-Host ""
 
 Write-Host "Summary:" -ForegroundColor Cyan
-Write-Host "  Users:                 $userCount (1 admin, 1 inactive)" -ForegroundColor White
+Write-Host "  Users:                 $userCount (1 super admin, 1 inactive)" -ForegroundColor White
 Write-Host "  Dogs:                  $dogCount (2 unavailable)" -ForegroundColor White
 $bookingCountDisplay = $bookingValues.Count
 Write-Host "  Bookings:              $bookingCountDisplay (spanning 28 days)" -ForegroundColor White
@@ -424,7 +422,7 @@ Write-Host "  Password: test123" -ForegroundColor Yellow
 Write-Host ""
 
 Write-Host "Sample User Logins:" -ForegroundColor Cyan
-Write-Host "  Admin:  $adminEmail" -ForegroundColor White
+Write-Host "  Super Admin:  $adminEmail" -ForegroundColor White
 $sampleUsers = $users | Where-Object { $_.email -ne $adminEmail } | Select-Object -First 3
 foreach ($user in $sampleUsers) {
     $levelName = switch ($user.level) {

@@ -150,9 +150,10 @@ Based on Tierheim Göppingen aesthetic:
 - View all walk notes from users (including from deleted/anonymized accounts)
 
 **Admin Creation:**
-- Config-based: Admins defined in environment variables or config file
-- No UI for admin management (keeps security tight)
-- Example: `ADMIN_EMAILS=admin@example.com,admin2@example.com`
+- Database-based: Super Admin created automatically on first run
+- Super Admin can promote/demote users via admin-users.html UI
+- Secure: Only Super Admin can manage admin privileges
+- Example: `SUPER_ADMIN_EMAIL=admin@example.com`
 
 ---
 
@@ -950,11 +951,12 @@ document.getElementById('title').textContent = i18n.t('booking.title');
 
 ### Admin Authorization
 ```go
-func isAdmin(email string) bool {
-  adminEmails := strings.Split(os.Getenv("ADMIN_EMAILS"), ",")
-  for _, admin := range adminEmails {
-    if strings.TrimSpace(admin) == email {
-      return true
+// Admin authorization is now handled via database flags
+// User model has is_admin and is_super_admin boolean fields
+// JWT includes these claims for efficient authorization checking
+func checkAdminAccess(r *http.Request) bool {
+  isAdmin, _ := r.Context().Value(middleware.IsAdminKey).(bool)
+  return isAdmin
     }
   }
   return false
@@ -1336,8 +1338,12 @@ DATABASE_PATH=/var/gassigeher/data/gassigeher.db
 JWT_SECRET=<random-256-bit-secret>
 JWT_EXPIRATION_HOURS=24
 
-# Admin
-ADMIN_EMAILS=admin@example.com,admin2@example.com
+# Super Admin (created automatically on first run)
+SUPER_ADMIN_EMAIL=admin@example.com
+
+# Email Provider
+EMAIL_PROVIDER=gmail
+EMAIL_BCC_ADMIN=
 
 # Gmail API
 GMAIL_CLIENT_ID=<google-oauth-client-id>

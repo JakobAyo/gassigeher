@@ -41,7 +41,7 @@ $tempEnv = ".\.env.e2e.tmp"
 DATABASE_PATH=$DatabasePath
 PORT=8080
 JWT_SECRET=test-jwt-secret-for-e2e-only
-ADMIN_EMAILS=admin@test.com
+SUPER_ADMIN_EMAIL=admin@test.com
 "@ | Out-File -FilePath $tempEnv -Encoding UTF8
 
 try {

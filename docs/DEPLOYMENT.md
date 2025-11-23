@@ -163,14 +163,27 @@ DATABASE_PATH=/var/gassigeher/data/gassigeher.db
 JWT_SECRET=your-super-secret-256-bit-random-string-here
 JWT_EXPIRATION_HOURS=24
 
-# Admin (Comma-separated admin emails)
-ADMIN_EMAILS=admin@yourdomain.com
+# Super Admin (created automatically on first run)
+SUPER_ADMIN_EMAIL=admin@yourdomain.com
+
+# Email Provider (gmail or smtp)
+EMAIL_PROVIDER=gmail
+EMAIL_BCC_ADMIN=
 
 # Gmail API (from Google Cloud Console)
 GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GMAIL_CLIENT_SECRET=your-client-secret
 GMAIL_REFRESH_TOKEN=your-refresh-token
 GMAIL_FROM_EMAIL=noreply@yourdomain.com
+
+# SMTP Configuration (alternative to Gmail API, when EMAIL_PROVIDER=smtp)
+# SMTP_HOST=smtp.yourdomain.com
+# SMTP_PORT=587
+# SMTP_USERNAME=noreply@yourdomain.com
+# SMTP_PASSWORD=your-password
+# SMTP_FROM_EMAIL=noreply@yourdomain.com
+# SMTP_USE_TLS=true
+# SMTP_USE_SSL=false
 
 # Uploads
 UPLOAD_DIR=/var/gassigeher/uploads
@@ -204,14 +217,27 @@ DB_CONN_MAX_LIFETIME=5
 JWT_SECRET=your-super-secret-256-bit-random-string-here
 JWT_EXPIRATION_HOURS=24
 
-# Admin (Comma-separated admin emails)
-ADMIN_EMAILS=admin@yourdomain.com
+# Super Admin (created automatically on first run)
+SUPER_ADMIN_EMAIL=admin@yourdomain.com
+
+# Email Provider (gmail or smtp)
+EMAIL_PROVIDER=gmail
+EMAIL_BCC_ADMIN=
 
 # Gmail API (from Google Cloud Console)
 GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GMAIL_CLIENT_SECRET=your-client-secret
 GMAIL_REFRESH_TOKEN=your-refresh-token
 GMAIL_FROM_EMAIL=noreply@yourdomain.com
+
+# SMTP Configuration (alternative to Gmail API, when EMAIL_PROVIDER=smtp)
+# SMTP_HOST=smtp.yourdomain.com
+# SMTP_PORT=587
+# SMTP_USERNAME=noreply@yourdomain.com
+# SMTP_PASSWORD=your-password
+# SMTP_FROM_EMAIL=noreply@yourdomain.com
+# SMTP_USE_TLS=true
+# SMTP_USE_SSL=false
 
 # Uploads
 UPLOAD_DIR=/var/gassigeher/uploads
@@ -248,14 +274,27 @@ DB_CONN_MAX_LIFETIME=5
 JWT_SECRET=your-super-secret-256-bit-random-string-here
 JWT_EXPIRATION_HOURS=24
 
-# Admin (Comma-separated admin emails)
-ADMIN_EMAILS=admin@yourdomain.com
+# Super Admin (created automatically on first run)
+SUPER_ADMIN_EMAIL=admin@yourdomain.com
+
+# Email Provider (gmail or smtp)
+EMAIL_PROVIDER=gmail
+EMAIL_BCC_ADMIN=
 
 # Gmail API (from Google Cloud Console)
 GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GMAIL_CLIENT_SECRET=your-client-secret
 GMAIL_REFRESH_TOKEN=your-refresh-token
 GMAIL_FROM_EMAIL=noreply@yourdomain.com
+
+# SMTP Configuration (alternative to Gmail API, when EMAIL_PROVIDER=smtp)
+# SMTP_HOST=smtp.yourdomain.com
+# SMTP_PORT=587
+# SMTP_USERNAME=noreply@yourdomain.com
+# SMTP_PASSWORD=your-password
+# SMTP_FROM_EMAIL=noreply@yourdomain.com
+# SMTP_USE_TLS=true
+# SMTP_USE_SSL=false
 
 # Uploads
 UPLOAD_DIR=/var/gassigeher/uploads

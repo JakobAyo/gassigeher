@@ -153,7 +153,7 @@ SchÃ¤ferhund  ← This means database needs regeneration
 ## Test Credentials
 
 After regenerating database:
-- **Admin**: Use email from `.env` file (`ADMIN_EMAILS`), password: `test123`
+- **Super Admin**: Use email from `.env` file (`SUPER_ADMIN_EMAIL`), password: `test123`
 - **Users**: Any generated user email, password: `test123`
 
 ## Need Help?

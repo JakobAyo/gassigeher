@@ -150,8 +150,8 @@ SMTP_USE_SSL=true
 # JWT
 JWT_SECRET=your-secure-jwt-secret
 
-# Admin
-ADMIN_EMAILS=admin@tierheim-goeppingen.de
+# Super Admin
+SUPER_ADMIN_EMAIL=admin@tierheim-goeppingen.de
 ```
 
 ## Notes

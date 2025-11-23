@@ -70,7 +70,7 @@ module.exports = defineConfig({
   // DATABASE_PATH=./e2e-tests/test.db
   // PORT=8080
   // JWT_SECRET=test-jwt-secret-for-e2e-only-do-not-use-in-production
-  // ADMIN_EMAILS=admin@test.com
+  // SUPER_ADMIN_EMAIL=admin@test.com
   // Run: ./gassigeher.exe in separate terminal
 
   // webServer disabled for local testing - start server manually
@@ -83,7 +83,7 @@ module.exports = defineConfig({
       DATABASE_PATH: './e2e-tests/test.db',
       PORT: '8080',
       JWT_SECRET: 'test-jwt-secret-for-e2e-only-do-not-use-in-production',
-      ADMIN_EMAILS: 'admin@test.com',
+      SUPER_ADMIN_EMAIL: 'admin@test.com',
       UPLOAD_DIR: './e2e-tests/test-uploads',
       GMAIL_CLIENT_ID: '',
       GMAIL_CLIENT_SECRET: '',

@@ -51,7 +51,7 @@ module.exports = async (config) => {
         cwd: path.resolve(__dirname, '..'),
         env: {
           ...process.env,
-          ADMIN_EMAILS: 'admin@test.com',
+          SUPER_ADMIN_EMAIL: 'admin@test.com',
         }
       });
       console.log('');

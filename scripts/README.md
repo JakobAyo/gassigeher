@@ -56,12 +56,11 @@ Generates comprehensive test data for the Gassigeher application, including user
 
 - **System Settings**: Default booking/cancellation rules
 - **Users** (12 total):
-  - 1 admin user (from ADMIN_EMAILS env var)
+  - 1 super admin user (from SUPER_ADMIN_EMAIL env var, ID=1)
   - 4 green-level users (beginner walkers)
   - 4 blue-level users (intermediate walkers)
   - 3 orange-level users (experienced walkers)
   - 1 inactive user (for auto-deactivation testing)
-  - 1 deleted user (for GDPR testing)
   - All verified and ready to use
   - Password for all: **test123**
 
@@ -98,7 +97,7 @@ Generates comprehensive test data for the Gassigeher application, including user
 ╚════════════════════════════════════════════════════════════╝
 
 Summary:
-  Users:                 12 (1 admin, 1 deleted, 1 inactive)
+  Users:                 12 (1 super admin, 1 inactive)
   Dogs:                  18 (2 unavailable)
   Bookings:              73 (spanning 28 days)
   Walk Notes:            28
@@ -109,7 +108,7 @@ Login Credentials (all users):
   Password: test123
 
 Sample User Logins:
-  Admin:  admin@tierheim-goeppingen.de
+  Super Admin:  admin@tierheim-goeppingen.de
   Green User:  max.mueller@example.com
   Blue User:  anna.schmidt@example.com
   Orange User:  lukas.fischer@example.com
@@ -150,7 +149,7 @@ Sample User Logins:
 
 ⚠️ **Data Clearing**: This script **deletes all existing data** before generating new data. Use with caution in production environments!
 
-🔑 **Admin Access**: Admin user email is taken from `ADMIN_EMAILS` in your `.env` file. If not set, defaults to `admin@tierheim-goeppingen.de`.
+🔑 **Super Admin Access**: Super Admin user email is taken from `SUPER_ADMIN_EMAIL` in your `.env` file. If not set, defaults to `admin@tierheim-goeppingen.de`. The Super Admin has full administrative privileges including the ability to promote/demote other users to admin status.
 
 📅 **Dynamic Dates**: Bookings are generated relative to today's date, so running the script on different days will produce different date ranges.
 
