@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -65,8 +66,13 @@ func (h *DogHandler) ListDogs(w http.ResponseWriter, r *http.Request) {
 		filter.Category = &category
 	}
 
-	if available := r.URL.Query().Get("available"); available != "" {
-		avail := available == "true" || available == "1"
+	// Accept both "available" and "is_available" for backwards compatibility
+	availableParam := r.URL.Query().Get("available")
+	if availableParam == "" {
+		availableParam = r.URL.Query().Get("is_available")
+	}
+	if availableParam != "" {
+		avail := availableParam == "true" || availableParam == "1"
 		filter.Available = &avail
 	}
 
@@ -77,6 +83,7 @@ func (h *DogHandler) ListDogs(w http.ResponseWriter, r *http.Request) {
 	// Get dogs
 	dogs, err := h.dogRepo.FindAll(filter)
 	if err != nil {
+		log.Printf("ERROR: Failed to fetch dogs: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch dogs")
 		return
 	}

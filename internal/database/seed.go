@@ -175,22 +175,23 @@ func generateDogs(db *sql.DB) error {
 		Name     string
 		Category string
 		Breed    string
+		Size     string
 		Age      int
 	}{
-		{"Bella", "green", "Labrador Retriever", 3},
-		{"Max", "green", "Golden Retriever", 5},
-		{"Luna", "blue", "Deutscher Schäferhund", 4},
-		{"Charlie", "blue", "Border Collie", 2},
-		{"Rocky", "orange", "Belgischer Malinois", 6},
+		{"Bella", "green", "Labrador Retriever", "large", 3},
+		{"Max", "green", "Golden Retriever", "large", 5},
+		{"Luna", "blue", "Deutscher Schäferhund", "large", 4},
+		{"Charlie", "blue", "Border Collie", "medium", 2},
+		{"Rocky", "orange", "Belgischer Malinois", "large", 6},
 	}
 
 	now := time.Now()
 	for _, dog := range dogs {
 		_, err := db.Exec(`
-			INSERT INTO dogs (name, category, breed, age,
+			INSERT INTO dogs (name, category, breed, size, age,
 				special_needs, is_available, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		`, dog.Name, dog.Category, dog.Breed, dog.Age,
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, dog.Name, dog.Category, dog.Breed, dog.Size, dog.Age,
 			"Keine besonderen Bedürfnisse", true, now, now)
 		if err != nil {
 			return fmt.Errorf("failed to create dog %s: %w", dog.Name, err)
