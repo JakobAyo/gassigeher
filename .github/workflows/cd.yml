@@ -1,0 +1,20 @@
+name: cd
+
+on: 
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Stop old container
+        run: podman stop gassigeher || true
+      - name: Remove old container
+        run: podman remove gassigeher || true
+      - name: Build image
+        run: podman build -t gassigeher:latest .
+      - name: Run new container
+        run: podman run -d --name gassigeher -p 8888:8888 -v ./data:/app/data:Z -e DATABASE_PATH=/app/data/gassigeher.db gassigeher:latest
