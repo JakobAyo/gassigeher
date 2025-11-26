@@ -10,11 +10,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Stop old container
-        run: podman stop gassigeher
-        continue-on-error: true
       - name: Remove old container
-        run: podman remove gassigeher
+        run: podman rm -f gassigeher
         continue-on-error: true
       - name: Build image
         run: podman build -t gassigeher:latest .
