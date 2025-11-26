@@ -38,3 +38,6 @@ e2e-tests/test-results.json
 # Temporary files
 nul
 gassigeher-new.exe
+
+# Claude Code session history (uncomment to ignore)
+.claude-sessions/
