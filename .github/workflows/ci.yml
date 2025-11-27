@@ -27,8 +27,6 @@ jobs:
         run: |
           go build -o gassigeher ./cmd/server
           DATABASE_PATH=./test.db JWT_SECRET=test SUPER_ADMIN_EMAIL=test@test.com PORT=8080 ./gassigeher &
-          sleep 3
-          cat server.log
       - name: Wait for server
         run: |
           for i in {1..30}; do
