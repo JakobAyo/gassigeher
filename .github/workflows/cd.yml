@@ -37,6 +37,6 @@ jobs:
         if: failure() && steps.verify.outcome == 'failure'
         run: |
           podman rm -f gassigeher
-          Copy-Item -Path "./data/gassigeher.db.backup" -Destination "./data/gassigeher.db"
+          Copy-Item -Path "./data/gassigeher.db.backup" -Destination "./data/gassigeher.db" -ErrorAction SilentlyContinue
           podman run -d --name gassigeher -p 8888:8888 -v ./data:/app/data:Z -v ./uploads:/app/uploads:Z -e DATABASE_PATH=/app/data/gassigeher.db -e JWT_SECRET=${{ secrets.JWT_SECRET }} -e SUPER_ADMIN_EMAIL=${{ secrets.SUPER_ADMIN_EMAIL }} -e BASE_URL=${{ secrets.BASE_URL }} gassigeher:previous
 
