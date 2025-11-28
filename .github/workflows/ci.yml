@@ -57,7 +57,7 @@ jobs:
         run: npm ci
         working-directory: e2e-tests
       - name: Install browser
-        run: npx playwright install chromium --with-deps
+        run: npx playwright install webkit --with-deps
         working-directory: e2e-tests
       - name: Start Go-server
         run: |
