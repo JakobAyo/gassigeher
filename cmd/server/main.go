@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -12,6 +13,7 @@ import (
 	"github.com/tranm/gassigeher/internal/cron"
 	"github.com/tranm/gassigeher/internal/database"
 	"github.com/tranm/gassigeher/internal/handlers"
+	"github.com/tranm/gassigeher/internal/logging"
 	"github.com/tranm/gassigeher/internal/middleware"
 	"github.com/tranm/gassigeher/internal/repository"
 	"github.com/tranm/gassigeher/internal/services"
@@ -31,7 +33,25 @@ func main() {
 	if err := godotenv.Load(*envPath); err != nil {
 		log.Fatalf("Error loading .env file from %s: %v", *envPath, err)
 	}
+
+	// Initialize logger with rotation support
+	// Configuration from environment variables with defaults
+	logConfig := &logging.Config{
+		LogDir:         getEnvOrDefault("LOG_DIR", "./logs"),
+		MaxAgeDays:     getEnvIntOrDefault("LOG_MAX_AGE_DAYS", 30),
+		CompressSizeMB: getEnvIntOrDefault("LOG_COMPRESS_SIZE_MB", 10),
+		ConsoleOutput:  getEnvBoolOrDefault("LOG_CONSOLE_OUTPUT", true),
+	}
+
+	logger, err := logging.NewLogger(logConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer logger.Close()
+
 	log.Printf("Loaded environment variables from: %s", *envPath)
+	log.Printf("Log files will be written to: %s (retention: %d days, compress > %dMB)",
+		logConfig.LogDir, logConfig.MaxAgeDays, logConfig.CompressSizeMB)
 
 	// Load configuration
 	cfg := config.Load()
@@ -239,4 +259,31 @@ func main() {
 	if err := http.ListenAndServe(":"+port, router); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+// Helper functions for environment variable parsing
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvBoolOrDefault(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
+	}
+	return defaultValue
 }
