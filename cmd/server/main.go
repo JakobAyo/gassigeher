@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/tranm/gassigeher/internal/static"
 	"github.com/tranm/gassigeher/internal/config"
 	"github.com/tranm/gassigeher/internal/cron"
 	"github.com/tranm/gassigeher/internal/database"
@@ -238,22 +240,28 @@ func main() {
 	superAdmin.HandleFunc("/admin/users/{id}/promote", userHandler.PromoteToAdmin).Methods("POST")
 	superAdmin.HandleFunc("/admin/users/{id}/demote", userHandler.DemoteAdmin).Methods("POST")
 
-	// Uploads directory (user photos, dog photos)
+	// Uploads directory (user photos, dog photos) - must remain on filesystem
 	router.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+
+	// Get embedded frontend filesystem
+	frontendFS, err := static.FrontendFS()
+	if err != nil {
+		log.Fatalf("Failed to get embedded frontend: %v", err)
+	}
 
 	// Serve specific HTML pages without .html extension
 	router.HandleFunc("/verify", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./frontend/verify.html")
+		serveEmbeddedFile(w, r, frontendFS, "verify.html")
 	}).Methods("GET")
 	router.HandleFunc("/reset-password", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./frontend/reset-password.html")
+		serveEmbeddedFile(w, r, frontendFS, "reset-password.html")
 	}).Methods("GET")
 	router.HandleFunc("/forgot-password", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./frontend/forgot-password.html")
+		serveEmbeddedFile(w, r, frontendFS, "forgot-password.html")
 	}).Methods("GET")
 
-	// Static files
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend")))
+	// Static files from embedded frontend
+	router.PathPrefix("/").Handler(http.FileServer(http.FS(frontendFS)))
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -292,4 +300,17 @@ func getEnvBoolOrDefault(key string, defaultValue bool) bool {
 		}
 	}
 	return defaultValue
+}
+
+// serveEmbeddedFile serves a file from the embedded filesystem
+func serveEmbeddedFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, filename string) {
+	content, err := fs.ReadFile(fsys, filename)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	// Set content type based on extension
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(content)
 }
