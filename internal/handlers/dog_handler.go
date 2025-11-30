@@ -186,6 +186,7 @@ func (h *DogHandler) CreateDog(w http.ResponseWriter, r *http.Request) {
 		SpecialInstructions: req.SpecialInstructions,
 		DefaultMorningTime:  req.DefaultMorningTime,
 		DefaultEveningTime:  req.DefaultEveningTime,
+		ExternalLink:        req.ExternalLink,
 		IsAvailable:         true, // Default to available
 	}
 
@@ -261,6 +262,9 @@ func (h *DogHandler) UpdateDog(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DefaultEveningTime != nil {
 		dog.DefaultEveningTime = req.DefaultEveningTime
+	}
+	if req.ExternalLink != nil {
+		dog.ExternalLink = req.ExternalLink
 	}
 
 	// Update in database

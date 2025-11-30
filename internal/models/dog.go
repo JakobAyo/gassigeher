@@ -23,6 +23,7 @@ type Dog struct {
 	DefaultEveningTime   *string    `json:"default_evening_time,omitempty"` // HH:MM format
 	IsAvailable          bool       `json:"is_available"`
 	IsFeatured           bool       `json:"is_featured"`
+	ExternalLink         *string    `json:"external_link,omitempty"`
 	UnavailableReason    *string    `json:"unavailable_reason,omitempty"`
 	UnavailableSince     *time.Time `json:"unavailable_since,omitempty"`
 	CreatedAt            time.Time  `json:"created_at"`
@@ -43,6 +44,7 @@ type CreateDogRequest struct {
 	SpecialInstructions *string `json:"special_instructions,omitempty"`
 	DefaultMorningTime  *string `json:"default_morning_time,omitempty"`
 	DefaultEveningTime  *string `json:"default_evening_time,omitempty"`
+	ExternalLink        *string `json:"external_link,omitempty"`
 }
 
 // UpdateDogRequest represents the request to update a dog
@@ -59,6 +61,7 @@ type UpdateDogRequest struct {
 	SpecialInstructions *string `json:"special_instructions,omitempty"`
 	DefaultMorningTime  *string `json:"default_morning_time,omitempty"`
 	DefaultEveningTime  *string `json:"default_evening_time,omitempty"`
+	ExternalLink        *string `json:"external_link,omitempty"`
 }
 
 // ToggleAvailabilityRequest represents the request to toggle dog availability

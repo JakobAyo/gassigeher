@@ -109,6 +109,13 @@
                         </div>
                     </div>
 
+                    <!-- External Link -->
+                    <div class="form-group">
+                        <label data-i18n="dogs.external_link">Externer Link</label>
+                        <input type="url" id="dog-external-link" placeholder="https://tierheim-goeppingen.de/hunde/...">
+                        <small style="color: #888; display: block; margin-top: 5px;" data-i18n="dogs.external_link_hint">Link zur Hundeseite auf der Tierheim-Website</small>
+                    </div>
+
                     <div style="display: flex; gap: 10px;">
                         <button type="submit" class="btn" data-i18n="common.save">Speichern</button>
                         <button type="button" class="btn btn-secondary" onclick="hideForm()" data-i18n="common.cancel">Abbrechen</button>
@@ -263,6 +270,7 @@
             document.getElementById('dog-size').value = dog.size;
             document.getElementById('dog-age').value = dog.age;
             document.getElementById('dog-category').value = dog.category;
+            document.getElementById('dog-external-link').value = dog.external_link || '';
             document.getElementById('dog-form-container').classList.remove('hidden');
 
             // Initialize photo UI for this dog
@@ -280,12 +288,14 @@
             e.preventDefault();
 
             const id = document.getElementById('dog-id').value;
+            const externalLink = document.getElementById('dog-external-link').value.trim();
             const data = {
                 name: document.getElementById('dog-name').value,
                 breed: document.getElementById('dog-breed').value,
                 size: document.getElementById('dog-size').value,
                 age: parseInt(document.getElementById('dog-age').value),
                 category: document.getElementById('dog-category').value,
+                external_link: externalLink || null,
             };
 
             try {

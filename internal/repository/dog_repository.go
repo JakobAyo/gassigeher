@@ -26,8 +26,8 @@ func (r *DogRepository) Create(dog *models.Dog) error {
 		INSERT INTO dogs (
 			name, breed, size, age, category, photo, photo_thumbnail, special_needs,
 			pickup_location, walk_route, walk_duration, special_instructions,
-			default_morning_time, default_evening_time, is_available
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			default_morning_time, default_evening_time, is_available, external_link
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := r.db.Exec(
@@ -47,6 +47,7 @@ func (r *DogRepository) Create(dog *models.Dog) error {
 		dog.DefaultMorningTime,
 		dog.DefaultEveningTime,
 		dog.IsAvailable,
+		dog.ExternalLink,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create dog: %w", err)
@@ -69,7 +70,7 @@ func (r *DogRepository) FindByID(id int) (*models.Dog, error) {
 		SELECT id, name, breed, size, age, category, photo, photo_thumbnail, special_needs,
 		       pickup_location, walk_route, walk_duration, special_instructions,
 		       default_morning_time, default_evening_time, is_available, is_featured,
-		       unavailable_reason, unavailable_since, created_at, updated_at
+		       external_link, unavailable_reason, unavailable_since, created_at, updated_at
 		FROM dogs
 		WHERE id = ?
 	`
@@ -93,6 +94,7 @@ func (r *DogRepository) FindByID(id int) (*models.Dog, error) {
 		&dog.DefaultEveningTime,
 		&dog.IsAvailable,
 		&dog.IsFeatured,
+		&dog.ExternalLink,
 		&dog.UnavailableReason,
 		&dog.UnavailableSince,
 		&dog.CreatedAt,
@@ -115,7 +117,7 @@ func (r *DogRepository) FindAll(filter *models.DogFilterRequest) ([]*models.Dog,
 		SELECT id, name, breed, size, age, category, photo, photo_thumbnail, special_needs,
 		       pickup_location, walk_route, walk_duration, special_instructions,
 		       default_morning_time, default_evening_time, is_available, is_featured,
-		       unavailable_reason, unavailable_since, created_at, updated_at
+		       external_link, unavailable_reason, unavailable_since, created_at, updated_at
 		FROM dogs
 		WHERE 1=1
 	`
@@ -190,6 +192,7 @@ func (r *DogRepository) FindAll(filter *models.DogFilterRequest) ([]*models.Dog,
 			&dog.DefaultEveningTime,
 			&dog.IsAvailable,
 			&dog.IsFeatured,
+			&dog.ExternalLink,
 			&dog.UnavailableReason,
 			&dog.UnavailableSince,
 			&dog.CreatedAt,
@@ -211,7 +214,7 @@ func (r *DogRepository) GetFeatured() ([]*models.Dog, error) {
 		SELECT id, name, breed, size, age, category, photo, photo_thumbnail, special_needs,
 		       pickup_location, walk_route, walk_duration, special_instructions,
 		       default_morning_time, default_evening_time, is_available, is_featured,
-		       unavailable_reason, unavailable_since, created_at, updated_at
+		       external_link, unavailable_reason, unavailable_since, created_at, updated_at
 		FROM dogs
 		WHERE is_featured = 1 AND is_available = 1
 		ORDER BY name ASC
@@ -244,6 +247,7 @@ func (r *DogRepository) GetFeatured() ([]*models.Dog, error) {
 			&dog.DefaultEveningTime,
 			&dog.IsAvailable,
 			&dog.IsFeatured,
+			&dog.ExternalLink,
 			&dog.UnavailableReason,
 			&dog.UnavailableSince,
 			&dog.CreatedAt,
@@ -312,6 +316,7 @@ func (r *DogRepository) Update(dog *models.Dog) error {
 			default_morning_time = ?,
 			default_evening_time = ?,
 			is_available = ?,
+			external_link = ?,
 			unavailable_reason = ?,
 			unavailable_since = ?,
 			updated_at = ?
@@ -335,6 +340,7 @@ func (r *DogRepository) Update(dog *models.Dog) error {
 		dog.DefaultMorningTime,
 		dog.DefaultEveningTime,
 		dog.IsAvailable,
+		dog.ExternalLink,
 		dog.UnavailableReason,
 		dog.UnavailableSince,
 		time.Now(),
