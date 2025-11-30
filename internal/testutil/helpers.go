@@ -9,7 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/tranm/gassigeher/internal/database"
+	"github.com/tranmh/gassigeher/internal/database"
 )
 
 // SetupTestDB creates a test database (default: in-memory SQLite)

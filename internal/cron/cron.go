@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tranm/gassigeher/internal/config"
-	"github.com/tranm/gassigeher/internal/repository"
-	"github.com/tranm/gassigeher/internal/services"
+	"github.com/tranmh/gassigeher/internal/config"
+	"github.com/tranmh/gassigeher/internal/repository"
+	"github.com/tranmh/gassigeher/internal/services"
 )
 
 // CronService handles scheduled tasks

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tranm/gassigeher/internal/database"
+	"github.com/tranmh/gassigeher/internal/database"
 )
 
 // Config holds the application configuration

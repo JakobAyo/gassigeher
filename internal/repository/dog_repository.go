@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tranm/gassigeher/internal/models"
+	"github.com/tranmh/gassigeher/internal/models"
 )
 
 // DogRepository handles dog database operations

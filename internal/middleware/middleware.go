@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tranm/gassigeher/internal/logging"
-	"github.com/tranm/gassigeher/internal/services"
+	"github.com/tranmh/gassigeher/internal/logging"
+	"github.com/tranmh/gassigeher/internal/services"
 )
 
 type contextKey string

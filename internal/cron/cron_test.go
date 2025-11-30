@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tranm/gassigeher/internal/testutil"
+	"github.com/tranmh/gassigeher/internal/testutil"
 )
 
 // DONE: TestCronService_AutoCompleteBookings tests automatic booking completion

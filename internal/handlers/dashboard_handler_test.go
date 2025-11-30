@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tranm/gassigeher/internal/config"
-	"github.com/tranm/gassigeher/internal/testutil"
+	"github.com/tranmh/gassigeher/internal/config"
+	"github.com/tranmh/gassigeher/internal/testutil"
 )
 
 // DONE: TestDashboardHandler_GetStats tests getting admin dashboard statistics
