@@ -1,4 +1,4 @@
-const { chromium } = require('@playwright/test');
+const { chromium, webkit, firefox } = require('@playwright/test');
 
 /**
  * Authentication fixture
@@ -36,7 +36,17 @@ async function logout(page) {
 async function setupAdminAuth() {
   console.log('🔐 Setting up admin authentication...');
 
-  const browser = await chromium.launch();
+  let browser;
+  try {
+    browser = await chromium.launch();
+  } catch {
+    try {
+      browser = await webkit.launch();
+    } catch {
+      browser = await firefox.launch();
+    }
+  }
+
   const context = await browser.newContext();
   const page = await context.newPage();
 
