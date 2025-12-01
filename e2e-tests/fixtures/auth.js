@@ -42,7 +42,7 @@ async function setupAdminAuth() {
 
   try {
     await page.goto('http://localhost:8080/login.html');
-    await page.fill('#email', 'admin@test.com');
+    await page.fill('#email', 'admin@tierheim-goeppingen.de');
     await page.fill('#password', 'test123');
     await page.click('button[type="submit"]');
 
