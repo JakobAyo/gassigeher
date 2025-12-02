@@ -339,12 +339,12 @@ func TestBookingRepository_FindAll(t *testing.T) {
 	}
 	repo.Create(booking2)
 
-	yesterday := time.Now().Add(-24 * time.Hour).Format("2006-01-02")
+	yesterday := time.Now().Add(-24 * time.Hour).Format("2025-11-15")
 	booking3 := &models.Booking{
 		UserID:        1,
 		DogID:         1,
 		Date:          yesterday,
-		ScheduledTime: "09:00",
+		ScheduledTime: "14:00",
 		Status:        "completed",
 	}
 	repo.Create(booking3)

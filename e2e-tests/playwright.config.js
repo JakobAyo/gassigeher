@@ -70,7 +70,8 @@ module.exports = defineConfig({
   // DATABASE_PATH=./e2e-tests/test.db
   // PORT=8080
   // JWT_SECRET=test-jwt-secret-for-e2e-only-do-not-use-in-production
-  // SUPER_ADMIN_EMAIL=admin@test.com
+  // SUPER_ADMIN_EMAIL=admin@tierheim-goeppingen.de
+  // SKIP_SEED=true (required! global-setup.js manages test data)
   // Run: ./gassigeher.exe in separate terminal
 
   // webServer disabled for local testing - start server manually
