@@ -2,7 +2,7 @@ package version
 
 // These variables are set at build time using -ldflags
 var (
-	Version   = "dev"     // Set via -ldflags "-X github.com/tranmh/gassigeher/internal/version.Version=1.0"
+	Version   = "dev"     // Set via -ldflags "-X github.com/tranmh/gassigeher/internal/version.Version=1.1"
 	GitCommit = "unknown" // Set via -ldflags "-X github.com/tranmh/gassigeher/internal/version.GitCommit=$(git rev-parse --short HEAD)"
 	BuildTime = "unknown" // Set via -ldflags "-X github.com/tranmh/gassigeher/internal/version.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 )

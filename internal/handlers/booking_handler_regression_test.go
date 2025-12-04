@@ -23,7 +23,7 @@ import (
 
 // setupRegressionTest creates a test database with necessary tables and seed data
 func setupRegressionTest(t *testing.T) (*sql.DB, func()) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -199,13 +199,14 @@ func TestRegression_ExperienceLevelValidation(t *testing.T) {
 			expectStatus: http.StatusForbidden,
 			description:  "Should fail - insufficient experience level",
 		},
+		// New level order: green < orange < blue (blue is highest)
 		{
 			name:         "TC-8.1.2-C: Blue user books orange dog",
 			userID:       2, // Blue user
 			dogID:        3, // Orange dog
 			time:         "09:00",
-			expectStatus: http.StatusForbidden,
-			description:  "Should fail - insufficient experience level",
+			expectStatus: http.StatusCreated,
+			description:  "Should succeed - blue is highest level, can access all dogs",
 		},
 		{
 			name:         "TC-8.1.2-D: Blue user books green dog",
@@ -216,12 +217,20 @@ func TestRegression_ExperienceLevelValidation(t *testing.T) {
 			description:  "Should succeed - blue can access green",
 		},
 		{
-			name:         "TC-8.1.2-E: Orange user books any dog",
+			name:         "TC-8.1.2-E: Orange user books orange dog",
 			userID:       3, // Orange user
 			dogID:        3, // Orange dog
 			time:         "15:00",
 			expectStatus: http.StatusCreated,
-			description:  "Should succeed - orange can access all levels",
+			description:  "Should succeed - orange can access orange",
+		},
+		{
+			name:         "TC-8.1.2-F: Orange user cannot book blue dog",
+			userID:       3, // Orange user
+			dogID:        2, // Blue dog
+			time:         "15:30",
+			expectStatus: http.StatusForbidden,
+			description:  "Should fail - orange cannot access blue (blue is highest)",
 		},
 	}
 
