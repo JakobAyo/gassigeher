@@ -339,11 +339,12 @@ func TestBookingRepository_FindAll(t *testing.T) {
 	}
 	repo.Create(booking2)
 
-	yesterday := time.Now().Add(-24 * time.Hour).Format("2025-11-15")
+	// Use a static past date for consistent test behavior
+	pastDate := "2025-11-15"
 	booking3 := &models.Booking{
 		UserID:        1,
 		DogID:         1,
-		Date:          yesterday,
+		Date:          pastDate,
 		ScheduledTime: "14:00",
 		Status:        "completed",
 	}

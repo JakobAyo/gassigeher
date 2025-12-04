@@ -361,7 +361,7 @@
         }
 
         function canUserAccessDog(userLevel, dogCategory) {
-            const levelOrder = { 'green': 1, 'blue': 2, 'orange': 3 };
+            const levelOrder = { 'green': 1, 'orange': 2, 'blue': 3 };
             return (levelOrder[userLevel] || 0) >= (levelOrder[dogCategory] || 0);
         }
 

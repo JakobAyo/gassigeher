@@ -77,18 +77,18 @@ func (h *ExperienceRequestHandler) CreateRequest(w http.ResponseWriter, r *http.
 	currentLevel := user.ExperienceLevel
 	requestedLevel := req.RequestedLevel
 
-	if currentLevel == "orange" {
+	if currentLevel == "blue" {
 		respondError(w, http.StatusBadRequest, "You already have the highest level")
 		return
 	}
 
-	if currentLevel == "blue" && requestedLevel == "blue" {
+	if currentLevel == "orange" && requestedLevel == "orange" {
 		respondError(w, http.StatusBadRequest, "You already have this level")
 		return
 	}
 
-	if currentLevel == "green" && requestedLevel == "orange" {
-		respondError(w, http.StatusBadRequest, "You must first get blue level")
+	if currentLevel == "green" && requestedLevel == "blue" {
+		respondError(w, http.StatusBadRequest, "You must first get orange level")
 		return
 	}
 
