@@ -521,11 +521,11 @@ func (r *DogRepository) GetBreeds() ([]string, error) {
 
 // CanUserAccessDog checks if a user can access a dog based on their experience level
 func CanUserAccessDog(userLevel, dogCategory string) bool {
-	// Define level hierarchy: green < blue < orange
+	// Define level hierarchy: green < orange < blue
 	levelOrder := map[string]int{
 		"green":  1,
-		"blue":   2,
-		"orange": 3,
+		"orange": 2,
+		"blue":   3,
 	}
 
 	userLevelNum, userOk := levelOrder[strings.ToLower(userLevel)]

@@ -86,9 +86,9 @@
                     <p data-i18n="profile.promotion_description">Beantragen Sie ein höheres Erfahrungslevel, um Zugang zu anspruchsvolleren Hunden zu erhalten.</p>
 
                     <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 6px;">
-                        <p style="margin: 5px 0;"><strong style="color: #28a745;">●</strong> <span data-i18n="profile.level_green_desc">Grün: Für alle Anfänger</span></p>
-                        <p style="margin: 5px 0;"><strong style="color: #17a2b8;">●</strong> <span data-i18n="profile.level_blue_desc">Blau: Für erfahrene Gassigeher</span></p>
-                        <p style="margin: 5px 0;"><strong style="color: #ffc107;">●</strong> <span data-i18n="profile.level_orange_desc">Orange: Nur für erfahrene Gassigeher</span></p>
+                        <p style="margin: 5px 0;"><strong style="color: #28a745;">●</strong> <span data-i18n="profile.level_green_desc">Grün: Für Anfänger</span></p>
+                        <p style="margin: 5px 0;"><strong style="color: #ffc107;">●</strong> <span data-i18n="profile.level_orange_desc">Orange: Für Erfahrene</span></p>
+                        <p style="margin: 5px 0;"><strong style="color: #17a2b8;">●</strong> <span data-i18n="profile.level_blue_desc">Blau: Nur für feste Gassigeher</span></p>
                     </div>
 
                     <div id="promotion-buttons"></div>
@@ -196,30 +196,30 @@
             const container = document.getElementById('promotion-buttons');
             const currentLevel = currentUser.experience_level;
 
-            if (currentLevel === 'orange') {
+            if (currentLevel === 'blue') {
                 container.innerHTML = '<p style="color: #28a745; font-weight: 600;">Sie haben das höchste Level erreicht!</p>';
                 return;
             }
 
             // Check for pending requests
-            const hasPendingBlue = myRequests.some(r => r.requested_level === 'blue' && r.status === 'pending');
             const hasPendingOrange = myRequests.some(r => r.requested_level === 'orange' && r.status === 'pending');
+            const hasPendingBlue = myRequests.some(r => r.requested_level === 'blue' && r.status === 'pending');
 
             let buttons = '';
 
             if (currentLevel === 'green') {
-                if (hasPendingBlue) {
-                    buttons += '<button class="btn" disabled>Blau Level beantragt</button>';
-                } else {
-                    buttons += '<button class="btn" onclick="requestPromotion(\'blue\')">Blau Level beantragen</button>';
-                }
-            }
-
-            if (currentLevel === 'blue') {
                 if (hasPendingOrange) {
                     buttons += '<button class="btn" disabled>Orange Level beantragt</button>';
                 } else {
                     buttons += '<button class="btn" onclick="requestPromotion(\'orange\')">Orange Level beantragen</button>';
+                }
+            }
+
+            if (currentLevel === 'orange') {
+                if (hasPendingBlue) {
+                    buttons += '<button class="btn" disabled>Blau Level beantragt</button>';
+                } else {
+                    buttons += '<button class="btn" onclick="requestPromotion(\'blue\')">Blau Level beantragen</button>';
                 }
             }
 
