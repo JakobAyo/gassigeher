@@ -712,7 +712,7 @@ func TestCanUserAccessDog(t *testing.T) {
 			expectedAccess: false,
 		},
 
-		// Blue user tests
+		// Blue user tests (new order: green < orange < blue, so blue is highest)
 		{
 			name:         "blue user can access green dog",
 			userLevel:    "blue",
@@ -726,13 +726,13 @@ func TestCanUserAccessDog(t *testing.T) {
 			expectedAccess: true,
 		},
 		{
-			name:         "blue user cannot access orange dog",
+			name:         "blue user can access orange dog",
 			userLevel:    "blue",
 			dogCategory:  "orange",
-			expectedAccess: false,
+			expectedAccess: true,
 		},
 
-		// Orange user tests
+		// Orange user tests (new order: green < orange < blue)
 		{
 			name:         "orange user can access green dog",
 			userLevel:    "orange",
@@ -740,10 +740,10 @@ func TestCanUserAccessDog(t *testing.T) {
 			expectedAccess: true,
 		},
 		{
-			name:         "orange user can access blue dog",
+			name:         "orange user cannot access blue dog",
 			userLevel:    "orange",
 			dogCategory:  "blue",
-			expectedAccess: true,
+			expectedAccess: false,
 		},
 		{
 			name:         "orange user can access orange dog",

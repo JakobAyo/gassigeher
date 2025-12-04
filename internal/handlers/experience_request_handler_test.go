@@ -25,9 +25,10 @@ func TestExperienceRequestHandler_CreateRequest(t *testing.T) {
 	greenUserID := testutil.SeedTestUser(t, db, "green@example.com", "Green User", "green")
 	blueUserID := testutil.SeedTestUser(t, db, "blue@example.com", "Blue User", "blue")
 
-	t.Run("green user requests blue level", func(t *testing.T) {
+	// New level order: green < orange < blue (blue is highest)
+	t.Run("green user requests orange level", func(t *testing.T) {
 		reqBody := map[string]interface{}{
-			"requested_level": "blue",
+			"requested_level": "orange",
 		}
 
 		body, _ := json.Marshal(reqBody)
@@ -51,7 +52,7 @@ func TestExperienceRequestHandler_CreateRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("blue user requests orange level", func(t *testing.T) {
+	t.Run("blue user already has highest level", func(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"requested_level": "orange",
 		}
@@ -65,8 +66,8 @@ func TestExperienceRequestHandler_CreateRequest(t *testing.T) {
 		rec := httptest.NewRecorder()
 		handler.CreateRequest(rec, req)
 
-		if rec.Code != http.StatusCreated {
-			t.Errorf("Expected status 201, got %d. Body: %s", rec.Code, rec.Body.String())
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400 for highest level, got %d. Body: %s", rec.Code, rec.Body.String())
 		}
 	})
 
@@ -90,18 +91,21 @@ func TestExperienceRequestHandler_CreateRequest(t *testing.T) {
 	})
 
 	t.Run("duplicate pending request", func(t *testing.T) {
-		// Create first request
-		testutil.SeedTestExperienceRequest(t, db, greenUserID, "blue", "pending")
+		// Create a new green user for this test
+		dupGreenID := testutil.SeedTestUser(t, db, "dupgreen@example.com", "Dup Green", "green")
+
+		// Create first request for orange (green can request orange in new order)
+		testutil.SeedTestExperienceRequest(t, db, dupGreenID, "orange", "pending")
 
 		// Try to create duplicate
 		reqBody := map[string]interface{}{
-			"requested_level": "blue",
+			"requested_level": "orange",
 		}
 
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("POST", "/api/experience-requests", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		ctx := contextWithUser(req.Context(), greenUserID, "green@example.com", false)
+		ctx := contextWithUser(req.Context(), dupGreenID, "dupgreen@example.com", false)
 		req = req.WithContext(ctx)
 
 		rec := httptest.NewRecorder()
@@ -112,12 +116,12 @@ func TestExperienceRequestHandler_CreateRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("green user cannot request orange directly", func(t *testing.T) {
-		// Create new green user
+	t.Run("green user cannot request blue directly", func(t *testing.T) {
+		// Create new green user (new order: green < orange < blue, so green cannot skip to blue)
 		newGreenID := testutil.SeedTestUser(t, db, "newgreen@example.com", "New Green", "green")
 
 		reqBody := map[string]interface{}{
-			"requested_level": "orange",
+			"requested_level": "blue",
 		}
 
 		body, _ := json.Marshal(reqBody)
