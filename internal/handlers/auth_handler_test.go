@@ -66,7 +66,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				name: "missing name",
 				reqBody: map[string]interface{}{
 					"email":            "test@example.com",
-					"phone":            "+49 123",
+					"phone":            "+49 1234567890",
 					"password":         "Test1234",
 					"confirm_password": "Test1234",
 					"accept_terms":     true,
@@ -77,7 +77,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				name: "missing email",
 				reqBody: map[string]interface{}{
 					"name":             "Test",
-					"phone":            "+49 123",
+					"phone":            "+49 1234567890",
 					"password":         "Test1234",
 					"confirm_password": "Test1234",
 					"accept_terms":     true,
@@ -121,7 +121,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"name":             "Test",
 			"email":            "test@example.com",
-			"phone":            "+49 123",
+			"phone":            "+49 1234567890",
 			"password":         "Test1234",
 			"confirm_password": "Different1234",
 			"accept_terms":     true,
@@ -147,7 +147,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"name":             "Test",
 			"email":            "test@example.com",
-			"phone":            "+49 123",
+			"phone":            "+49 1234567890",
 			"password":         "Test1234",
 			"confirm_password": "Test1234",
 			"accept_terms":     false,
@@ -169,7 +169,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"name":             "Test",
 			"email":            "test@example.com",
-			"phone":            "+49 123",
+			"phone":            "+49 1234567890",
 			"password":         "weak",
 			"confirm_password": "weak",
 			"accept_terms":     true,
@@ -194,7 +194,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"name":             "New User",
 			"email":            "existing@example.com",
-			"phone":            "+49 123",
+			"phone":            "+49 1234567890",
 			"password":         "Test1234",
 			"confirm_password": "Test1234",
 			"accept_terms":     true,
